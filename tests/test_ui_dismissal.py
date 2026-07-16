@@ -150,7 +150,7 @@ def test_select_set_options_preserves_selection_across_combat_actions(monkeypatc
             await pilot.pause()
 
             cs.query_one("#sel-hp-target").value = str(adv_id)
-            cs.query_one("#sel-condition-name").value = "Stunned"
+            cs.query_one("#sel-condition-name").value = "Dazed"
             cs.query_one("#btn-add-condition").press()
             await pilot.pause()
             # the selection must survive _persist()'s dropdown refresh for
@@ -160,6 +160,6 @@ def test_select_set_options_preserves_selection_across_combat_actions(monkeypatc
             await pilot.pause()
 
             conditions = cs.combat["combatants"][0]["conditions"]
-            assert [c["name"] for c in conditions] == ["Stunned", "Blinded"]
+            assert [c["name"] for c in conditions] == ["Dazed", "Blinded"]
 
     run(scenario)

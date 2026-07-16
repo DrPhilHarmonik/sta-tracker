@@ -117,11 +117,12 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             combat_screen.query_one("#btn-next-round").press()
             await pilot.pause()
             summary = str(combat_screen.query_one("#combat-summary").content)
-            # Combat is still the 5e tracker (roadmap Phase 7): it reads HP/AC
-            # from the 5e sheet shape, which an STA-sheeted character lacks, so
-            # it shows defaults. The round/turn engine is what matters here.
+            # The STA conflict tracker (roadmap Phase 7) reads the STA sheet, so
+            # the summary now shows the character's Stress track, not 5e HP, and
+            # the round/turn engine has advanced to round 2.
             assert "Mira Thorn" in summary
             assert "Round 2" in summary
+            assert "Stress" in summary
 
             # 6. Export a vault and confirm the file reflects everything above.
             await pilot.press("escape")

@@ -219,6 +219,25 @@ rolls, condition/Trait tags, and Momentum/Threat spends surfaced inline
 (e.g. buy extra d20, make an attack lethal). Reuse the combatant-list scaffolding;
 replace the turn-order engine.
 
+**Status: Done.** `combat.py` is rewritten to the STA model: two sides (crew /
+adversaries), no initiative, `start_conflict`/`next_turn`/`next_round` with
+strict side-alternation, Traits stored per combatant (field kept as
+`conditions` so the party-overview reader and DB normalizer are unchanged), and
+pure `apply_stress`/`recover_stress` helpers (the sheet owns the Stress
+numbers). `conditions.py` swapped from the 5e SRD list to STA Traits (Injured,
+Exposed, Cover, ...), authored mechanics-only. `screens/combat.py` is rebuilt
+around Task rolls (`dice.roll_task` off the actor's STA sheet, auto-banking
+Momentum and adding Threat on Complications), Challenge-Dice weapon damage
+(`dice.roll_challenge`, pre-filling the Stress field), Stress apply/recover with
+automatic Injury + "Injured" Trait at 0 Stress, a Traits picker, and the Phase-5
+`PoolBar` mounted inline on Turn Controls. The summary now reads the STA sheet
+(Stress track, Injuries) so the old "shows default HP" friction is gone. Death
+saves and the 5e action economy are removed. `test_combat.py`,
+`test_conditions.py`, `test_ui_combat_conditions.py`, `test_ui_combat_rolling.py`
+rewritten for STA; `test_combat_log.py` and `test_ui_summon.py` pass unchanged.
+Remaining transitional 5e surfaces: the Party Overview roster (still HP/AC),
+`roll.py`, `effects.py`, and `export.py` — all Phase 10. 339 tests passing.
+
 ### Phase 8 — Adversary & NPC reference
 
 Replace `srd.py` with a user-authored adversary/NPC library (Minor NPC / Notable

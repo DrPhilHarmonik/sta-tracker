@@ -1,57 +1,80 @@
-"""Encounter/combat state management.
+"""Conflict (combat) state management, Star Trek Adventures 2e style.
 
-Combat state lives in an Encounter entity's ``fields["combat"]`` as a plain
-dict. Every function here is a pure transformation — callers persist the
-returned dict via ``db.update_entity``. HP itself is never stored here; it
-lives on the combatant's own character sheet (see sheet.py) so there is one
-source of truth.
+Conflict state lives in an Encounter entity's ``fields["combat"]`` as a plain
+dict. Every function here is a pure transformation -- callers persist the
+returned dict via ``db.update_entity``.
+
+STA has no initiative sort and no hit-point pool. Instead:
+
+* Turns alternate between two sides -- the player **crew** and the GM's
+  **adversaries**. After one character acts, a character from the opposing
+  side goes next; when a side has no one left to act, the other side takes the
+  remaining turns; when everyone has acted the round ends.
+* A character's durability is their **Stress** track, which lives on the
+  character sheet (see sta_sheet.py) so there is one source of truth. Reaching
+  0 Stress means an Injury, tracked on the sheet.
+
+Situational tags (STA "Traits", plus a few status conditions) are stored per
+combatant under ``conditions`` -- the field keeps its parent name so the
+party-overview reader and the DB normalizer stay unchanged.
 """
+
+CREW = "crew"
+ADVERSARY = "adversary"
+SIDES = (CREW, ADVERSARY)
 
 
 def default_combat() -> dict:
-    return {"round": 1, "turn_index": 0, "started": False, "combatants": [], "log": []}
+    return {
+        "round": 1,
+        "started": False,
+        "active_side": CREW,
+        "current_entity_id": None,
+        "combatants": [],
+        "log": [],
+    }
+
+
+def _normalize_side(value) -> str:
+    return value if value in SIDES else ADVERSARY
 
 
 def normalize_combat(raw: dict | None) -> dict:
     combat = default_combat()
     raw = raw or {}
     combat["round"] = int(raw.get("round") or 1)
-    combat["turn_index"] = int(raw.get("turn_index") or 0)
     combat["started"] = bool(raw.get("started", False))
+    # The crew hold the initiative by default; only an explicit stored value
+    # flips this. (Combatant side, in contrast, defaults to adversary.)
+    stored_side = raw.get("active_side")
+    combat["active_side"] = stored_side if stored_side in SIDES else CREW
+    current = raw.get("current_entity_id")
+    combat["current_entity_id"] = int(current) if current is not None else None
     combat["log"] = list(raw.get("log") or [])
     combat["combatants"] = [
         {
             "entity_id": int(c["entity_id"]),
-            "initiative": int(c.get("initiative") or 0),
+            "side": _normalize_side(c.get("side")),
+            "has_acted": bool(c.get("has_acted", False)),
             "conditions": [
                 {"name": str(cond.get("name", "")), "rounds_remaining": cond.get("rounds_remaining")}
                 for cond in (c.get("conditions") or [])
             ],
-            "death_saves": {
-                "successes": max(0, min(3, int((c.get("death_saves") or {}).get("successes") or 0))),
-                "failures": max(0, min(3, int((c.get("death_saves") or {}).get("failures") or 0))),
-            },
-            "actions_used": {
-                "action": bool((c.get("actions_used") or {}).get("action", False)),
-                "bonus_action": bool((c.get("actions_used") or {}).get("bonus_action", False)),
-                "reaction": bool((c.get("actions_used") or {}).get("reaction", False)),
-            },
         }
         for c in (raw.get("combatants") or [])
     ]
     return combat
 
 
-def add_combatant(combat: dict, entity_id: int) -> dict:
+def add_combatant(combat: dict, entity_id: int, side: str = ADVERSARY) -> dict:
     combat = normalize_combat(combat)
     if any(c["entity_id"] == entity_id for c in combat["combatants"]):
         return combat
     combat["combatants"].append({
         "entity_id": entity_id,
-        "initiative": 0,
+        "side": _normalize_side(side),
+        "has_acted": False,
         "conditions": [],
-        "death_saves": {"successes": 0, "failures": 0},
-        "actions_used": {"action": False, "bonus_action": False, "reaction": False},
     })
     return combat
 
@@ -62,77 +85,93 @@ def remove_combatant(combat: dict, entity_id: int) -> dict:
     if idx is None:
         return combat
     combat["combatants"].pop(idx)
-    if combat["combatants"]:
-        combat["turn_index"] %= len(combat["combatants"])
-    else:
-        combat["turn_index"] = 0
+    if combat["current_entity_id"] == entity_id:
+        combat["current_entity_id"] = None
+    if not combat["combatants"]:
         combat["started"] = False
+        combat["current_entity_id"] = None
     return combat
 
 
-def set_initiative(combat: dict, entity_id: int, initiative: int) -> dict:
+def set_side(combat: dict, entity_id: int, side: str) -> dict:
     combat = normalize_combat(combat)
     for c in combat["combatants"]:
         if c["entity_id"] == entity_id:
-            c["initiative"] = initiative
+            c["side"] = _normalize_side(side)
     return combat
 
 
-def start_encounter(combat: dict) -> dict:
+def _first_unacted(combat: dict, side: str) -> dict | None:
+    return next((c for c in combat["combatants"] if c["side"] == side and not c["has_acted"]), None)
+
+
+def _opposite(side: str) -> str:
+    return ADVERSARY if side == CREW else CREW
+
+
+def start_conflict(combat: dict) -> dict:
+    """Begin the conflict: the crew act first, no initiative sort."""
     combat = normalize_combat(combat)
-    combat["combatants"].sort(key=lambda c: c["initiative"], reverse=True)
     combat["started"] = True
     combat["round"] = 1
-    combat["turn_index"] = 0
+    for c in combat["combatants"]:
+        c["has_acted"] = False
+    first = _first_unacted(combat, CREW) or (combat["combatants"][0] if combat["combatants"] else None)
+    combat["current_entity_id"] = first["entity_id"] if first else None
+    combat["active_side"] = first["side"] if first else CREW
     return combat
 
 
 def current_combatant(combat: dict) -> dict | None:
     combat = normalize_combat(combat)
-    if not combat["combatants"]:
+    cur = combat.get("current_entity_id")
+    if cur is None:
         return None
-    return combat["combatants"][combat["turn_index"] % len(combat["combatants"])]
-
-
-def mark_action_used(combat: dict, entity_id: int, action_type: str) -> dict:
-    """Mark an action slot used for entity this turn. action_type: action/bonus_action/reaction."""
-    combat = normalize_combat(combat)
-    for c in combat["combatants"]:
-        if c["entity_id"] == entity_id and action_type in c["actions_used"]:
-            c["actions_used"][action_type] = True
-    return combat
-
-
-def reset_actions(combat: dict, entity_id: int) -> dict:
-    """Clear all action slots for a combatant (called at turn start)."""
-    combat = normalize_combat(combat)
-    for c in combat["combatants"]:
-        if c["entity_id"] == entity_id:
-            c["actions_used"] = {"action": False, "bonus_action": False, "reaction": False}
-    return combat
+    return next((c for c in combat["combatants"] if c["entity_id"] == cur), None)
 
 
 def next_turn(combat: dict) -> dict:
+    """Advance to the next turn, alternating sides where possible.
+
+    The character whose turn is ending is marked as having acted; the next
+    character is drawn from the opposing side first, then the same side, and
+    when everyone has acted the round rolls over (Traits tick, all sides reset,
+    crew act first again)."""
     combat = normalize_combat(combat)
     if not combat["combatants"]:
         return combat
-    combat["turn_index"] += 1
-    if combat["turn_index"] >= len(combat["combatants"]):
-        combat["turn_index"] = 0
-        combat["round"] += 1
-        _tick_conditions(combat)
-    # Reset actions for the combatant whose turn is starting
-    if combat["started"] and combat["combatants"]:
-        idx = combat["turn_index"] % len(combat["combatants"])
-        reset_actions(combat, combat["combatants"][idx]["entity_id"])
+
+    # Find the acting combatant within this (already-normalized) combat dict --
+    # not via current_combatant(), which returns one from a fresh copy, so
+    # marking it acted would be lost.
+    cur_id = combat.get("current_entity_id")
+    current = next((c for c in combat["combatants"] if c["entity_id"] == cur_id), None)
+    just_side = current["side"] if current else combat["active_side"]
+    if current:
+        current["has_acted"] = True
+
+    nxt = _first_unacted(combat, _opposite(just_side)) or _first_unacted(combat, just_side)
+    if nxt is None:
+        return _begin_round(combat)
+
+    combat["current_entity_id"] = nxt["entity_id"]
+    combat["active_side"] = nxt["side"]
     return combat
 
 
 def next_round(combat: dict) -> dict:
-    combat = normalize_combat(combat)
-    combat["turn_index"] = 0
+    """Skip any remaining turns and start a fresh round."""
+    return _begin_round(normalize_combat(combat))
+
+
+def _begin_round(combat: dict) -> dict:
     combat["round"] += 1
+    for c in combat["combatants"]:
+        c["has_acted"] = False
     _tick_conditions(combat)
+    first = _first_unacted(combat, CREW) or (combat["combatants"][0] if combat["combatants"] else None)
+    combat["current_entity_id"] = first["entity_id"] if first else None
+    combat["active_side"] = first["side"] if first else CREW
     return combat
 
 
@@ -165,38 +204,16 @@ def remove_condition(combat: dict, entity_id: int, index: int) -> dict:
     return combat
 
 
-def add_death_save(combat: dict, entity_id: int, success: bool) -> tuple[dict, str | None]:
-    """Record one death save result. Returns (combat, resolution) where
-    resolution is 'stable' (3 successes), 'dead' (3 failures), or None."""
-    combat = normalize_combat(combat)
-    for c in combat["combatants"]:
-        if c["entity_id"] == entity_id:
-            if success:
-                c["death_saves"]["successes"] = min(3, c["death_saves"]["successes"] + 1)
-                if c["death_saves"]["successes"] >= 3:
-                    return combat, "stable"
-            else:
-                c["death_saves"]["failures"] = min(3, c["death_saves"]["failures"] + 1)
-                if c["death_saves"]["failures"] >= 3:
-                    return combat, "dead"
-            return combat, None
-    return combat, None
+# -- Stress track transforms (the sheet owns the numbers; these are pure math) -
+
+def apply_stress(stress_current: int, amount: int) -> int:
+    """Reduce a character's remaining Stress, floored at 0."""
+    return max(0, stress_current - amount)
 
 
-def reset_death_saves(combat: dict, entity_id: int) -> dict:
-    combat = normalize_combat(combat)
-    for c in combat["combatants"]:
-        if c["entity_id"] == entity_id:
-            c["death_saves"] = {"successes": 0, "failures": 0}
-    return combat
-
-
-def apply_damage(hp_current: int, amount: int) -> int:
-    return max(0, hp_current - amount)
-
-
-def apply_heal(hp_current: int, hp_max: int, amount: int) -> int:
-    return min(hp_max, hp_current + amount)
+def recover_stress(stress_current: int, stress_max: int, amount: int) -> int:
+    """Restore remaining Stress, capped at the track maximum."""
+    return min(stress_max, stress_current + amount)
 
 
 def log_entry(combat: dict, round_: int, message: str) -> dict:
