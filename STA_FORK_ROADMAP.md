@@ -109,11 +109,22 @@ were the deleted systems' own tests).
 
 ### Phase 2 — Dice engine (2d20 + Challenge Dice)
 
-Rewrite `dice.py`. New `roll_task(attribute, department, focus, difficulty,
-extra_d20=0, complication_range=1, rng)` returning successes, Momentum generated,
-and Complication count. New Challenge-Dice roller returning total + Effect count.
-Pure functions, seeded-RNG testable, no UI. This is the mechanical heart; build
-and test it in isolation first.
+**Status: Done.** Added the STA engine to `dice.py` additively (the generic
+`roll()` parser stays; the 5e `roll_d20`/ability/skill helpers stay as
+transitional code the combat/roll screens still call until Phases 4/7).
+
+- `roll_task(attribute, department, difficulty, focus, dice, complication_range,
+  rng)` → `TaskResult(successes, complications, succeeded, momentum,
+  target_number, rolls, detail)`. TN = attribute + department; die ≤ TN scores a
+  success; natural 1 or (focus and die ≤ department) scores 2; die in the
+  complication range (20 by default) adds a Complication; Momentum = successes −
+  Difficulty on success. Pool clamped to `MAX_TASK_DICE` (5).
+- `roll_challenge(count, rng)` → `ChallengeResult(total, effects, rolls, detail)`,
+  reading Challenge Dice by icon (1→1, 2→2, 3/4→0, 5/6→1+Effect).
+
+Pure functions, seeded-RNG testable, no UI. 14 new tests in
+`tests/test_sta_dice.py` (a scripted-RNG helper pins exact faces). **315 tests
+passing.**
 
 ### Phase 3 — Character sheet shape
 
