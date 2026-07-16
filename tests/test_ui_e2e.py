@@ -44,15 +44,17 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             adv_id = db.list_entities("adventurer")[0]["id"]
             assert db.get_entity(adv_id)["name"] == "Mira Thorn"
             cs = app.screen  # quick mode lands on the Character Sheet
+            for _ in range(8):
+                await pilot.pause()
 
-            # 2. Assign sheet values.
-            cs.query_one("#sheet-ac").value = "16"
-            cs.query_one("#sheet-hp-max").value = "40"
-            cs.query_one("#sheet-hp-current").value = "40"
+            # 2. Assign STA sheet values (Attributes + Departments).
+            cs.query_one("#sta-attr-control").value = "11"
+            cs.query_one("#sta-dept-command").value = "3"
             cs.action_save()
             await pilot.pause()
             saved_sheet = db.get_entity(adv_id)["fields"]["sheet"]
-            assert saved_sheet["ac"] == 16 and saved_sheet["hp_max"] == 40
+            assert saved_sheet["attributes"]["control"] == 11
+            assert saved_sheet["departments"]["command"] == 3
 
             # 3. Roll dice -- confirm it uses the sheet we just saved.
             table = app.screen.query_one("#entity-table")
@@ -114,8 +116,10 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             combat_screen.query_one("#btn-next-round").press()
             await pilot.pause()
             summary = str(combat_screen.query_one("#combat-summary").content)
-            assert "HP 40/40" in summary
-            assert "AC 16" in summary
+            # Combat is still the 5e tracker (roadmap Phase 7): it reads HP/AC
+            # from the 5e sheet shape, which an STA-sheeted character lacks, so
+            # it shows defaults. The round/turn engine is what matters here.
+            assert "Mira Thorn" in summary
             assert "Round 2" in summary
 
             # 6. Export a vault and confirm the file reflects everything above.
@@ -135,8 +139,10 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             assert "Exported 2 entities" in str(export_screen.query_one("#export-status").content)
 
             mira_md = (vault_dir / "Adventurer" / "Mira Thorn.md").read_text(encoding="utf-8")
-            assert "ac: 16" in mira_md
-            assert "hp_max: 40" in mira_md
+            # Export is still the 5e exporter (roadmap Phase 10); it round-trips
+            # the flat entity fields and active effects regardless of sheet shape.
+            # STA sheet frontmatter arrives when the exporter is migrated.
+            assert "name: Mira Thorn" in mira_md
             assert "Potion of Speed" in mira_md
 
     asyncio.run(scenario())

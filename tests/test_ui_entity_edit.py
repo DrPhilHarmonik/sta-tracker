@@ -96,18 +96,13 @@ def test_editing_flat_level_syncs_into_sheet_level(monkeypatch, tmp_path):
     run(scenario)
 
 
-def test_saving_character_sheet_syncs_level_back_to_flat_field(monkeypatch, tmp_path):
-    """The reverse direction: editing Level on the Character Sheet's Combat
-    tab (the more common workflow) must update the flat field too, so list
-    columns and the detail view's flat-fields section don't show a stale
-    value."""
+def test_saving_character_sheet_persists_sta_attributes(monkeypatch, tmp_path):
+    """Editing an Attribute on the STA character sheet and saving persists an
+    STA-shaped sheet (attributes/departments), routed through the DB's
+    shape-aware normalization."""
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
-    adv_id = db.create_entity("adventurer", "Test Hero", {"level": "1"}, "")
-    db.update_entity(adv_id, "Test Hero", {
-        "level": "1",
-        "sheet": {"abilities": {"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10}, "level": 1},
-    }, "")
+    adv_id = db.create_entity("adventurer", "Test Hero", {}, "")
 
     async def scenario():
         app = STAApp()
@@ -122,14 +117,17 @@ def test_saving_character_sheet_syncs_level_back_to_flat_field(monkeypatch, tmp_
             await pilot.pause()
             detail = app.screen
             detail.action_open_sheet()
-            await pilot.pause()
+            for _ in range(8):
+                await pilot.pause()
             sheet_screen = app.screen
-            sheet_screen.query_one("#sheet-level").value = "5"
+            sheet_screen.query_one("#sta-attr-control").value = "11"
+            sheet_screen.query_one("#sta-dept-science").value = "4"
             sheet_screen.action_save()
             await pilot.pause()
 
-        fields = db.get_entity(adv_id)["fields"]
-        assert fields["sheet"]["level"] == 5
-        assert fields["level"] == "5"
+        sheet = db.get_entity(adv_id)["fields"]["sheet"]
+        assert "attributes" in sheet
+        assert sheet["attributes"]["control"] == 11
+        assert sheet["departments"]["science"] == 4
 
     run(scenario)

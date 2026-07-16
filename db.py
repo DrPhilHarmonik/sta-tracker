@@ -6,6 +6,7 @@ from datetime import datetime
 
 import models
 import sheet as sheet_mod
+import sta_sheet as sta_sheet_mod
 import effects as effects_mod
 import combat as combat_mod
 
@@ -119,6 +120,18 @@ def objective_progress(fields: dict) -> tuple[int, int]:
     return done, len(objectives)
 
 
+def _normalize_sheet_any(raw: dict) -> dict:
+    """Normalize a character sheet by shape. During the STA migration both
+    shapes coexist in the DB: an STA sheet carries ``attributes``/
+    ``departments``; the legacy 5e sheet carries ``abilities``. New STA screens
+    write the former; un-migrated 5e screens still write the latter. When the
+    last 5e reader is gone (roadmap Phase 10) the 5e branch and ``sheet.py`` go
+    with it."""
+    if "attributes" in raw or "departments" in raw:
+        return sta_sheet_mod.normalize_sheet(raw)
+    return sheet_mod.normalize_sheet(raw)
+
+
 def normalize_special_fields(fields: dict, type_: str | None = None) -> dict:
     """Type-check and normalize the sheet/active_effects/combat sub-shapes
     that ride alongside an entity's flat schema fields. Used by every write
@@ -129,7 +142,7 @@ def normalize_special_fields(fields: dict, type_: str | None = None) -> dict:
     if "sheet" in fields:
         if not isinstance(fields["sheet"], dict):
             raise ValueError("fields['sheet'] must be an object")
-        fields["sheet"] = sheet_mod.normalize_sheet(fields["sheet"])
+        fields["sheet"] = _normalize_sheet_any(fields["sheet"])
     if "active_effects" in fields:
         if not isinstance(fields["active_effects"], list):
             raise ValueError("fields['active_effects'] must be a list")

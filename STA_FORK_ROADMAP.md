@@ -150,10 +150,27 @@ including a seam check into `dice.roll_task`. **330 tests passing.**
 
 ### Phase 4 — Sheet screen
 
-Rewrite `screens/sheet.py`: Attributes×Departments grid (the signature STA
-layout — the 6×6 makes the target-number lookup visible), Focuses/Values/Talents
-lists, Stress track, Determination tracker. A "roll task" affordance that picks an
-Attribute + Department, applies a Focus, and calls `roll_task`.
+**Status: Done.** Rewrote `screens/sheet.py` as an STA sheet reading from
+`sta_sheet`. Tabs: **Stats** (Attributes + Departments input grids with a live
+base-Stress readout), **Profile** (species/rank/career/role, Determination,
+Protection, Stress max/current, equipment, notes), **Focuses & Values**
+(add/remove lists), **Talents & Weapons** (talents; weapons showing computed
+`rating + Security` damage dice; injuries), and **Task Roll** — pick an
+Attribute + Department + Difficulty + Focus + dice pool and call
+`dice.roll_task`, plus a Challenge Dice roller. Class name and `#btn-export-sheet`
+preserved so existing screens/tests keep driving it.
+
+**DB bridge:** `db.normalize_special_fields` now dispatches sheet normalization
+by shape (`attributes`/`departments` → `sta_sheet`, else the legacy 5e `sheet`),
+so both shapes coexist while the other consumers migrate. The 5e branch and
+`sheet.py` are removed in Phase 10 once the last reader is gone.
+
+**Transitional friction handled:** the still-5e combat/export/roll screens read
+the 5e shape, so an STA-sheeted character shows default HP/AC there and its STA
+stats don't yet reach the vault frontmatter — the affected e2e assertions were
+updated with comments pointing at Phases 7/10. The obsolete "level syncs to flat
+field" test was replaced with an STA attribute-persistence test. 6 new tests
+(`tests/test_ui_sta_sheet.py`, plus the DB-bridge path). **335 tests passing.**
 
 ### Phase 5 — Momentum / Threat pool (new structural piece)
 
