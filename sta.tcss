@@ -1,0 +1,1165 @@
+/* ---- Global ---- */
+Screen {
+    background: #1a1a2e;
+}
+
+Header {
+    background: #16213e;
+    color: #e0e0e0;
+}
+
+Footer {
+    background: #16213e;
+}
+
+Button {
+    margin: 0 1 0 0;
+    min-width: 14;
+}
+
+Input, Select {
+    margin-bottom: 1;
+}
+
+Label {
+    color: #b2ccd6;
+}
+
+.action-row {
+    height: auto;
+    align: left middle;
+}
+
+#actions,
+#detail-actions,
+#form-actions,
+#rel-actions,
+#sheet-actions,
+#wizard-actions,
+#pending-rel-actions,
+#attack-actions,
+#special-actions,
+#wiz-attack-actions,
+#wiz-special-actions,
+#initiative-actions,
+#hp-actions,
+#turn-advance-actions,
+#roll-ability-actions,
+#roll-attack-actions,
+#attack-roll-actions,
+#export-actions,
+#delrel-actions {
+    height: auto;
+    align: left middle;
+}
+
+#backup-status,
+#restore-status,
+#vault-import-status,
+#ddb-import-status,
+#csv-import-status,
+#export-status,
+#wizard-error,
+#roll-result {
+    min-height: 1;
+}
+
+/* ---- Dashboard ---- */
+#dashboard {
+    padding: 2 4;
+    height: 1fr;
+}
+
+#title {
+    text-align: center;
+    color: #c792ea;
+    text-style: bold;
+    margin-bottom: 2;
+    padding: 1;
+    border: solid #c792ea;
+}
+
+#cards {
+    layout: grid;
+    grid-size: 3 3;
+    grid-gutter: 1 2;
+    height: auto;
+    margin-bottom: 2;
+}
+
+.card {
+    height: 5;
+    content-align: center middle;
+    background: #16213e;
+    border: solid #0f3460;
+    text-align: center;
+}
+
+.card:hover {
+    background: #0f3460;
+}
+
+#actions {
+    align: center middle;
+    height: auto;
+}
+
+#actions Button {
+    min-width: 16;
+}
+
+/* ---- Entity List ---- */
+#list-container {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#list-toolbar {
+    height: auto;
+    margin-bottom: 1;
+    align: left middle;
+}
+
+#list-toolbar Input {
+    width: 1fr;
+    margin-right: 1;
+}
+
+#list-toolbar Button {
+    min-width: 18;
+}
+
+DataTable {
+    height: 1fr;
+    background: #16213e;
+}
+
+/* ---- Relationship Browser ---- */
+#relationship-browser {
+    height: 1fr;
+    padding: 1 2;
+    background: #16213e;
+}
+
+#relationship-toolbar {
+    height: auto;
+    margin-bottom: 1;
+    align: left middle;
+}
+
+#relationship-toolbar Select {
+    width: 40;
+    margin-right: 1;
+}
+
+/* ---- Entity Detail ---- */
+#detail-scroll {
+    height: 1fr;
+    padding: 1 2;
+    background: #16213e;
+}
+
+#detail-actions {
+    height: auto;
+    padding: 1 2;
+    align: left middle;
+    background: #1a1a2e;
+}
+
+#detail-actions Button {
+    min-width: 16;
+}
+
+/* ---- Entity Form ---- */
+#form-scroll {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#form-fields {
+    height: auto;
+}
+
+#form-fields Label {
+    margin-top: 1;
+}
+
+#form-fields Input {
+    width: 1fr;
+}
+
+#form-fields Select {
+    width: 1fr;
+}
+
+#form-fields TextArea {
+    height: 10;
+    width: 1fr;
+}
+
+#pending-rel-actions {
+    margin-top: 1;
+}
+
+#form-fields ListView {
+    height: 6;
+    margin-top: 1;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+#form-actions {
+    padding: 1 2;
+    background: #1a1a2e;
+}
+
+/* ---- Relationship Form ---- */
+#rel-scroll {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#rel-form {
+    height: auto;
+}
+
+#rel-form Label {
+    margin-top: 1;
+}
+
+#rel-form Select {
+    width: 1fr;
+}
+
+#rel-form Input {
+    width: 1fr;
+}
+
+#rel-actions {
+    padding: 1 2;
+}
+
+/* ---- Delete Rel ---- */
+#delrel-container {
+    padding: 1 2;
+    height: 1fr;
+}
+
+#delrel-container ListView {
+    height: 1fr;
+    margin: 1 0;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+#delrel-actions Button {
+    min-width: 18;
+}
+
+/* ---- Confirm Modal ---- */
+#confirm-box {
+    width: 50;
+    height: auto;
+    padding: 2;
+    background: #16213e;
+    border: solid #c792ea;
+    align: center middle;
+}
+
+
+#confirm-box Static {
+    margin-bottom: 1;
+    text-align: center;
+}
+
+#confirm-box Horizontal {
+    height: auto;
+    align: center middle;
+}
+
+ConfirmScreen {
+    align: center middle;
+    background: rgba(0,0,0,0.7);
+}
+
+/* ---- Quick Capture Modal ---- */
+QuickCaptureModal {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.75);
+}
+
+#qc-box {
+    width: 70;
+    height: auto;
+    max-height: 36;
+    padding: 2 3;
+    background: #16213e;
+    border: solid #c792ea;
+}
+
+#qc-header {
+    text-style: bold;
+    margin-bottom: 1;
+    color: #c792ea;
+}
+
+#qc-tag-hint {
+    color: #546e7a;
+    margin-top: 1;
+}
+
+#qc-box Label {
+    margin-top: 1;
+    color: #b2ccd6;
+}
+
+#qc-box Input {
+    width: 1fr;
+    margin-bottom: 0;
+}
+
+#qc-entity-list {
+    height: 6;
+    margin-top: 1;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+#qc-status {
+    min-height: 1;
+    margin-top: 1;
+}
+
+#qc-actions {
+    height: auto;
+    align: left middle;
+    margin-top: 1;
+}
+
+/* ---- Campaign Switcher ---- */
+#campaign-scroll {
+    height: 1fr;
+}
+
+#campaign-container {
+    padding: 2 4;
+    height: auto;
+}
+
+#campaign-title, #new-campaign-title {
+    text-style: bold;
+    color: #c792ea;
+    margin-bottom: 1;
+}
+
+#new-campaign-title {
+    margin-top: 2;
+}
+
+#campaign-table {
+    height: 10;
+    margin-bottom: 1;
+    background: #16213e;
+}
+
+#campaign-actions {
+    height: auto;
+    align: left middle;
+    margin-bottom: 1;
+}
+
+#campaign-status {
+    min-height: 1;
+    margin-bottom: 1;
+}
+
+#campaign-container Label {
+    margin-top: 1;
+}
+
+#campaign-container Input {
+    width: 1fr;
+}
+
+/* ---- Export ---- */
+#export-container {
+    padding: 2 4;
+    height: 1fr;
+}
+
+#export-title {
+    text-style: bold;
+    color: #c3e88d;
+    margin-bottom: 2;
+}
+
+#export-container Label {
+    margin-top: 1;
+}
+
+#export-container Input {
+    width: 1fr;
+}
+
+#export-status {
+    margin-top: 1;
+}
+
+#export-actions {
+    margin-top: 1;
+}
+
+#export-actions Button {
+    min-width: 16;
+}
+
+#export-stats-row {
+    height: auto;
+    align: left middle;
+    margin-bottom: 1;
+}
+
+#export-stats-row Label {
+    margin-top: 0;
+    margin-left: 1;
+}
+
+/* ---- Global Search ---- */
+#global-search-container {
+    padding: 1 2;
+    height: 1fr;
+}
+
+#global-search-container Input {
+    margin-bottom: 1;
+}
+
+/* ---- Backup / Restore ---- */
+#backup-scroll {
+    height: 1fr;
+}
+
+#backup-container {
+    padding: 2 4;
+    height: auto;
+}
+
+#backup-title, #vault-import-title, #ddb-import-title, #csv-import-title {
+    text-style: bold;
+    color: #f78c6c;
+    margin-bottom: 2;
+}
+
+#vault-import-title, #ddb-import-title, #csv-import-title {
+    margin-top: 2;
+}
+
+#csv-import-actions {
+    height: auto;
+    align: left middle;
+    margin-top: 1;
+}
+
+#backup-container Label {
+    margin-top: 1;
+}
+
+#backup-container Input {
+    width: 1fr;
+}
+
+#restore-actions, #vault-import-actions {
+    height: auto;
+    align: left middle;
+}
+
+#backup-status, #restore-status, #vault-import-status {
+    margin: 1 0;
+}
+
+/* ---- Character Sheet ---- */
+#sheet-tabs {
+    height: 1fr;
+}
+
+#abilities-scroll, #combat-scroll, #skills-scroll, #attacks-scroll {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#abilities-fields, #combat-fields, #skills-fields, #attacks-fields {
+    height: auto;
+}
+
+.save-row, .skill-row {
+    height: auto;
+    align: left middle;
+    margin-bottom: 1;
+}
+
+/* Ability grid (2 rows × 3 columns) */
+.ability-grid-row {
+    height: auto;
+    width: 100%;
+    margin-bottom: 1;
+}
+
+.ability-cell {
+    width: 1fr;
+    height: auto;
+    align: center top;
+    padding: 1 2;
+    border: solid #1e2d45;
+}
+
+.ability-cell-label {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: #82aaff;
+}
+
+.ability-input {
+    width: 8;
+}
+
+.ability-mod {
+    width: 100%;
+    text-align: center;
+    color: #c3e88d;
+    text-style: bold;
+}
+
+.race-bonus-badge {
+    width: 10;
+    color: #c3e88d;
+    text-style: bold;
+}
+
+.save-label, .skill-label {
+    width: 24;
+}
+
+.save-bonus, .skill-bonus {
+    width: 6;
+    margin-left: 2;
+    color: #c3e88d;
+    text-style: bold;
+}
+
+#skills-fields Select {
+    width: 24;
+}
+
+#combat-fields Label {
+    margin-top: 1;
+}
+
+#combat-fields Input {
+    width: 1fr;
+}
+
+#combat-fields Static#sheet-prof-bonus {
+    color: #c3e88d;
+    text-style: bold;
+}
+
+#combat-fields Input.stat-input,
+#form-fields Input.stat-input,
+#wizard-step Input.stat-input {
+    width: 14;
+}
+
+#attack-inputs, #special-inputs {
+    height: auto;
+    margin-top: 1;
+}
+
+#attack-inputs Input, #special-inputs Input {
+    width: 1fr;
+    margin-right: 1;
+}
+
+#attack-actions, #special-actions {
+    margin-top: 1;
+}
+
+#attack-actions Button, #special-actions Button {
+    min-width: 20;
+}
+
+#attacks-fields ListView {
+    height: 6;
+    margin-bottom: 1;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+#attacks-fields Static {
+    margin-top: 1;
+}
+
+#sheet-actions {
+    padding: 1 2;
+    background: #1a1a2e;
+}
+
+#sheet-actions Button {
+    min-width: 18;
+}
+
+/* ---- Roll Picker ---- */
+#roll-tabs {
+    height: 1fr;
+}
+
+#roll-ability-scroll, #roll-skill-scroll, #roll-attack-scroll, #roll-custom-scroll {
+    height: 1fr;
+}
+
+#roll-ability-fields, #roll-skill-fields, #roll-attack-fields, #roll-custom-fields {
+    height: auto;
+    padding: 1 2;
+}
+
+#roll-ability-fields Label, #roll-skill-fields Label, #roll-attack-fields Label, #roll-custom-fields Label {
+    margin-top: 1;
+}
+
+#roll-ability-fields Select, #roll-skill-fields Select, #roll-attack-fields Select {
+    width: 1fr;
+}
+
+#roll-custom-fields Input {
+    width: 1fr;
+}
+
+#roll-ability-mode, #roll-skill-mode, #roll-attack-mode {
+    height: auto;
+    align: left middle;
+    margin-top: 1;
+}
+
+#roll-ability-mode Label, #roll-skill-mode Label {
+    margin-right: 2;
+    margin-top: 0;
+}
+
+#roll-ability-actions, #roll-attack-actions {
+    margin-top: 1;
+}
+
+#roll-ability-actions Button, #roll-attack-actions Button {
+    min-width: 20;
+}
+
+#roll-output {
+    height: auto;
+    max-height: 12;
+    padding: 1 2;
+    background: #16213e;
+    border: solid #0f3460;
+}
+
+#roll-result {
+    margin-bottom: 1;
+}
+
+#roll-history {
+    height: 8;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+/* ---- Combat Tracker ---- */
+#combat-tabs {
+    height: 1fr;
+}
+
+#combatants-scroll, #hp-conditions-scroll, #turn-controls-scroll {
+    height: 1fr;
+}
+
+#combatants-fields, #hp-conditions-fields, #turn-controls-fields {
+    height: auto;
+    padding: 1 2;
+}
+
+#combatants-fields Label, #hp-conditions-fields Label {
+    margin-top: 1;
+}
+
+#combatants-fields Select, #hp-conditions-fields Select {
+    width: 1fr;
+}
+
+#combatants-fields Input, #hp-conditions-fields Input {
+    width: 1fr;
+}
+
+#initiative-actions, #hp-actions, #turn-advance-actions, #attack-roll-actions {
+    margin-top: 1;
+}
+
+#initiative-actions Button, #hp-actions Button, #turn-advance-actions Button, #attack-roll-actions Button {
+    min-width: 18;
+}
+
+#attack-roll-mode {
+    height: auto;
+    align: left middle;
+    margin-top: 1;
+}
+
+#attack-roll-mode Label {
+    margin-top: 0;
+    margin-right: 2;
+}
+
+#attack-roll-result {
+    margin: 1 0;
+    color: #c3e88d;
+    text-style: bold;
+}
+
+#turn-controls-fields Button {
+    width: 1fr;
+    margin-top: 1;
+}
+
+#hp-conditions-fields ListView {
+    height: 6;
+    margin-top: 1;
+    margin-bottom: 1;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+#balance-readout {
+    margin-top: 2;
+    padding: 1;
+    background: #16213e;
+    border: solid #0f3460;
+    min-height: 3;
+}
+
+#condition-desc {
+    color: #82aaff;
+    margin-bottom: 1;
+    min-height: 2;
+}
+
+#death-save-section {
+    margin-top: 2;
+    padding: 1;
+    border: solid #ff5370;
+    background: #1a0a0e;
+}
+
+#death-save-heading {
+    text-style: bold;
+    color: #ff5370;
+    margin-bottom: 1;
+}
+
+#death-save-status {
+    color: #c3e88d;
+    margin-bottom: 1;
+}
+
+#death-save-actions {
+    height: auto;
+    align: left middle;
+}
+
+#combat-summary-scroll {
+    height: auto;
+    max-height: 14;
+    padding: 1 2;
+    background: #16213e;
+    border: solid #0f3460;
+}
+
+/* ---- Active Effects ---- */
+#effects-scroll {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#effects-fields {
+    height: auto;
+}
+
+#effects-fields Label {
+    margin-top: 1;
+}
+
+#effects-fields Input, #effects-fields Select {
+    width: 1fr;
+}
+
+#effects-fields ListView {
+    height: 8;
+    margin-top: 1;
+    margin-bottom: 1;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+/* ---- Session Workflow ---- */
+#session-workflow-scroll {
+    height: 1fr;
+    padding: 1 2;
+}
+
+.workflow-heading {
+    text-style: bold;
+    color: #b2ccd6;
+    margin-top: 1;
+}
+
+#session-workflow-scroll DataTable {
+    height: 6;
+    margin-bottom: 1;
+}
+
+#wf-pc-actions {
+    height: auto;
+    align: left middle;
+    margin-bottom: 1;
+}
+
+#wf-pc-actions Button {
+    min-width: 20;
+}
+
+/* ---- Creation Wizard ---- */
+#wizard-scroll {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#wizard-step {
+    height: auto;
+}
+
+#wizard-step Label {
+    margin-top: 1;
+}
+
+#wizard-step Input, #wizard-step Select {
+    width: 1fr;
+}
+
+#wizard-step ListView {
+    height: 6;
+    margin-top: 1;
+    margin-bottom: 1;
+    background: #1a1a2e;
+    border: solid #0f3460;
+}
+
+#wiz-attack-inputs Input, #wiz-special-inputs Input {
+    width: 1fr;
+    margin-right: 1;
+}
+
+#wiz-attack-actions, #wiz-special-actions {
+    margin-top: 1;
+}
+
+#wiz-attack-actions Button, #wiz-special-actions Button {
+    min-width: 20;
+}
+
+#wiz-review-summary {
+    margin: 1 0;
+    background: #16213e;
+    border: solid #0f3460;
+    padding: 1 2;
+}
+
+#wizard-actions {
+    padding: 1 2;
+    background: #1a1a2e;
+}
+
+#wizard-error {
+    color: #ff5370;
+    margin-bottom: 1;
+}
+
+.wiz-class-hint {
+    color: #c3e88d;
+    margin-bottom: 1;
+}
+
+#wizard-nav {
+    height: auto;
+}
+
+#wizard-nav Button {
+    min-width: 18;
+}
+
+/* ── Spells tab ────────────────────────────────────────────────────── */
+
+#spell-stats {
+    background: #0f3460;
+    color: #e2e8f0;
+    padding: 0 2;
+    margin-bottom: 1;
+}
+
+.slot-row {
+    height: 1;
+    align: left middle;
+    margin-bottom: 0;
+}
+
+.slot-label {
+    width: 6;
+    color: #a0b3c8;
+}
+
+.slot-input {
+    width: 6;
+    height: 1;
+    border: none;
+    padding: 0 1;
+    background: #1e2a3a;
+}
+
+.slot-sep {
+    width: 3;
+    text-align: center;
+    color: #566c7f;
+}
+
+#spell-form-row1, #spell-form-row2 {
+    height: auto;
+    align: left middle;
+    margin-top: 1;
+}
+
+#spell-name {
+    width: 1fr;
+}
+
+#spell-level {
+    width: 16;
+}
+
+#spell-action-cost {
+    width: 20;
+}
+
+#spell-save-or-attack {
+    width: 18;
+}
+
+#spell-save-ability {
+    width: 18;
+}
+
+#spell-description {
+    width: 1fr;
+}
+
+#spell-actions {
+    height: auto;
+    align: left middle;
+    margin: 1 0;
+}
+
+#list-spells {
+    height: auto;
+    min-height: 4;
+    max-height: 14;
+    background: #16213e;
+    border: solid #0f3460;
+}
+
+/* ── Rest screen ───────────────────────────────────────────────────── */
+
+.rest-section-heading {
+    color: #c3e88d;
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+.rest-desc {
+    color: #566c7f;
+    margin-bottom: 1;
+}
+
+.rest-result {
+    margin-left: 2;
+}
+
+.rest-pc-block {
+    height: auto;
+    background: #16213e;
+    border: solid #0f3460;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+.rest-pc-header {
+    height: auto;
+    align: left middle;
+    margin-bottom: 0;
+}
+
+.rest-pc-name {
+    width: 22;
+}
+
+.rest-pc-stats {
+    color: #a0b3c8;
+}
+
+.rest-slots {
+    color: #82aaff;
+    margin-bottom: 0;
+}
+
+.rest-dice-input {
+    width: 6;
+    height: 1;
+    border: none;
+    padding: 0 1;
+    background: #1e2a3a;
+}
+
+#short-rest-roster {
+    height: auto;
+}
+
+#short-rest-roster Horizontal {
+    height: auto;
+    align: left middle;
+}
+
+/* ── Party Overview ─────────────────────────────────────────────────────── */
+
+#overview-wrap {
+    margin: 1 2;
+    padding: 1;
+    border: solid #4a7fbf;
+    height: 1fr;
+}
+
+#overview-status {
+    height: auto;
+    color: #82aaff;
+    margin-bottom: 1;
+}
+
+#party-table {
+    height: 1fr;
+    background: #0d1b2a;
+}
+
+/* ── Award XP ───────────────────────────────────────────────────────────── */
+
+#xp-wrap {
+    margin: 1 2;
+    padding: 1;
+    border: solid #4a7fbf;
+    height: auto;
+}
+
+#xp-heading {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#xp-input-row {
+    height: auto;
+    align: left middle;
+    margin-bottom: 1;
+}
+
+#xp-input-row Label {
+    width: 18;
+}
+
+.xp-amount-input {
+    width: 16;
+}
+
+#xp-split-label {
+    height: auto;
+    margin-bottom: 1;
+    color: #82aaff;
+}
+
+#xp-roster-heading {
+    height: auto;
+    margin-bottom: 0;
+}
+
+#xp-roster-scroll {
+    height: auto;
+    max-height: 12;
+}
+
+#xp-roster {
+    height: auto;
+    background: #0d1b2a;
+    border: solid #2a3f5f;
+}
+
+#xp-actions {
+    height: auto;
+    align: left middle;
+    margin-top: 1;
+}
+
+#xp-result {
+    height: auto;
+    margin-top: 1;
+}
+
+/* ── Monster Reference ──────────────────────────────────────────────────── */
+
+#monster-split {
+    height: 1fr;
+    margin: 1 2 0 2;
+    border: solid #7b3f3f;
+}
+
+#monster-left {
+    width: 32;
+    border-right: solid #7b3f3f;
+    padding: 0 1;
+}
+
+#monster-left Input {
+    height: 3;
+    margin-bottom: 1;
+}
+
+#monster-list {
+    height: 1fr;
+    background: #0d1b2a;
+    border: none;
+}
+
+#monster-right {
+    width: 1fr;
+    padding: 1 2;
+    background: #0d1b2a;
+}
+
+#monster-detail {
+    height: auto;
+}
+
+#monster-actions {
+    height: auto;
+    align: left middle;
+    margin: 0 2 1 2;
+    padding-top: 1;
+}
