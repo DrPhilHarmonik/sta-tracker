@@ -7,6 +7,7 @@ from datetime import datetime
 import models
 import sheet as sheet_mod
 import sta_sheet as sta_sheet_mod
+import momentum as momentum_mod
 import effects as effects_mod
 import combat as combat_mod
 
@@ -60,6 +61,13 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_entities_name ON entities(name);
             CREATE INDEX IF NOT EXISTS idx_rel_from ON relationships(from_id);
             CREATE INDEX IF NOT EXISTS idx_rel_to ON relationships(to_id);
+            -- Table-level metacurrency: a single row (id=1) holds the shared
+            -- Momentum and Threat pools for the whole campaign. See momentum.py.
+            CREATE TABLE IF NOT EXISTS campaign_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                momentum INTEGER NOT NULL DEFAULT 0,
+                threat INTEGER NOT NULL DEFAULT 0
+            );
         """)
 
 
@@ -67,6 +75,7 @@ def reset_db():
     with get_conn() as conn:
         conn.execute("DELETE FROM relationships")
         conn.execute("DELETE FROM entities")
+        conn.execute("DELETE FROM campaign_state")
 
 
 def now():
@@ -255,6 +264,58 @@ def active_adventurers() -> list[dict]:
         e for e in list_entities("adventurer")
         if e["fields"].get("status", "Active") not in ("Dead", "Retired")
     ]
+
+
+# --- Campaign state (Momentum / Threat pools) ---
+
+def _ensure_pools(conn) -> None:
+    """Guarantee the singleton campaign-state row exists before read/write."""
+    conn.execute(
+        "INSERT OR IGNORE INTO campaign_state (id, momentum, threat) VALUES (1, 0, 0)"
+    )
+
+
+def get_pools() -> dict:
+    """Return the shared Momentum and Threat pools, creating the row if needed."""
+    with get_conn() as conn:
+        _ensure_pools(conn)
+        row = conn.execute(
+            "SELECT momentum, threat FROM campaign_state WHERE id=1"
+        ).fetchone()
+        return {"momentum": row["momentum"], "threat": row["threat"]}
+
+
+def set_pools(momentum: int, threat: int) -> dict:
+    """Overwrite both pools, clamping each to its rules bounds (see momentum.py)."""
+    m = momentum_mod.clamp_momentum(momentum)
+    t = momentum_mod.clamp_threat(threat)
+    with get_conn() as conn:
+        _ensure_pools(conn)
+        conn.execute(
+            "UPDATE campaign_state SET momentum=?, threat=? WHERE id=1", (m, t)
+        )
+    return {"momentum": m, "threat": t}
+
+
+def adjust_momentum(delta: int) -> dict:
+    """Add (or spend, with a negative delta) group Momentum. Returns the pools."""
+    pools = get_pools()
+    return set_pools(pools["momentum"] + delta, pools["threat"])
+
+
+def adjust_threat(delta: int) -> dict:
+    """Add (or spend, with a negative delta) GM Threat. Returns the pools."""
+    pools = get_pools()
+    return set_pools(pools["momentum"], pools["threat"] + delta)
+
+
+def seed_threat(num_players: int | None = None) -> dict:
+    """Reset Threat to twice the number of player characters, the standard
+    start-of-session seeding. Defaults to the count of active adventurers."""
+    if num_players is None:
+        num_players = len(active_adventurers())
+    pools = get_pools()
+    return set_pools(pools["momentum"], momentum_mod.seed_threat(num_players))
 
 
 def latest_session() -> dict | None:

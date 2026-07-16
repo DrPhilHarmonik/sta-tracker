@@ -23,6 +23,7 @@ from screens.campaigns import CampaignSwitcherScreen
 from screens.party_overview import PartyOverviewScreen
 from screens.monster_ref import MonsterRefScreen
 from screens.relationships import RelationshipBrowserScreen
+from screens.pools import PoolBar
 from screens.common import DismissableScreen, PALETTE
 
 class Dashboard(Screen):
@@ -49,6 +50,7 @@ class Dashboard(Screen):
         yield Header()
         yield Container(
             Static("", id="title"),
+            PoolBar(id="pool-bar"),
             Container(id="cards"),
             Horizontal(
                 Button("Switch Campaign", id="btn-campaigns", variant="default"),
@@ -68,6 +70,7 @@ class Dashboard(Screen):
 
     async def on_screen_resume(self):
         await self.refresh_cards()
+        self.query_one("#pool-bar", PoolBar).refresh_pools()
 
     def _campaign_name(self) -> str:
         try:

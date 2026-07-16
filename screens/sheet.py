@@ -349,7 +349,14 @@ class CharacterSheetScreen(Screen):
             dice=2 + bonus,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
-        self.query_one("#task-result", Static).update(f"[{colour}]{result.detail}[/]")
+        detail = result.detail
+        # Successes beyond the Difficulty become Momentum, which belongs to the
+        # shared table pool rather than this character (see momentum.py). Bank
+        # it automatically and report the pool's new level.
+        if result.momentum > 0:
+            pools = db.adjust_momentum(result.momentum)
+            detail += f"  --  banked {result.momentum} Momentum (pool {pools['momentum']})"
+        self.query_one("#task-result", Static).update(f"[{colour}]{detail}[/]")
 
     def _do_roll_cd(self):
         count = self._to_int("cd-count", 1)

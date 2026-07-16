@@ -179,6 +179,15 @@ Add the singleton campaign-state record and a small always-visible pool widget
 `roll_task` results into the pool. This is the only schema addition beyond the
 sheet blob; keep it minimal.
 
+**Status: Done.** `momentum.py` holds the pool rules (Momentum caps at 6,
+Threat is floored at 0 with no ceiling, seeded at 2× players). `db.py` adds a
+singleton `campaign_state` table (id=1) with `get_pools`/`set_pools`/
+`adjust_momentum`/`adjust_threat`/`seed_threat`, and `reset_db` clears it.
+`screens/pools.py` is the always-visible `PoolBar` widget (spend/add for both
+pools plus a Threat "Seed" button), mounted on the Dashboard and refreshed on
+resume. The character sheet's task roll banks any generated Momentum into the
+pool automatically and reports the new total. 349 tests passing.
+
 ### Phase 6 — Chargen wizard
 
 Rewrite `screens/wizard.py` for STA lifepath-style creation: Species → Environment
