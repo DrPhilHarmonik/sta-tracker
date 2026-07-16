@@ -1,39 +1,43 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import Header, Footer, Label, Button, DataTable, Input, Select, TextArea, Static, ListView, ListItem, TabbedContent, TabPane, Switch
-from textual.screen import Screen, ModalScreen
+from textual.widgets import Header, Footer, Label, Button, Input, Select, Static, ListView, ListItem
 from textual.containers import Container, Horizontal, ScrollableContainer
 from textual import on
-from rich.text import Text
-from pathlib import Path
 
 import db
-import export as exp
-import sheet as shm
-import dice
-import combat as cbt
-import effects as fx
-import classes
-import races
-from models import ENTITY_TYPES, ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCHEMAS, RELATIONSHIP_TYPES
+import sta_sheet as sta
+import species as species_mod
+from models import ENTITY_LABELS
 
-from screens.common import DismissableScreen, PALETTE, entity_ref_options, schema_choices, tint_border
-from screens.sheet import SKILL_LEVEL_OPTIONS
+from screens.common import DismissableScreen, entity_ref_options, schema_choices, tint_border
 
-# The only entity types the wizard knows how to build: a stat-block-guided
-# flow for adventurer/enemy, and a basic-info-only flow for npc. Everything
-# else (location, quest, faction, item, session, encounter) already has an
-# adequate single-screen "+ Add" form and has no wizard steps defined.
+# The only entity types the wizard knows how to build: a lifepath-guided flow
+# for adventurer/enemy, and a basic-info-only flow for npc. Everything else
+# (location, quest, faction, item, session, encounter) already has an adequate
+# single-screen "+ Add" form and has no wizard steps defined.
 WIZARD_ENTITY_TYPES = ("npc", "adventurer", "enemy")
+
+# Suggested starting Attribute spread (STA 2e Attributes run ~7-12). The GM
+# freely edits these on the Attributes step; species bonuses stack on top.
+DEFAULT_ATTRIBUTE_SPREAD = {
+    "control": 9, "daring": 8, "fitness": 9,
+    "insight": 8, "presence": 10, "reason": 8,
+}
+# Suggested starting Department spread (Departments run 0-5).
+DEFAULT_DEPARTMENT_SPREAD = {
+    "command": 2, "conn": 1, "engineering": 1,
+    "security": 2, "medicine": 1, "science": 1,
+}
 
 
 class WizardScreen(DismissableScreen):
-    """Guided multi-step character creation.
+    """Guided multi-step character creation, STA 2e lifepath style.
 
-    NPCs only ever get a single "basic info" step since they carry no
-    stat block. Adventurers and Enemies walk Basic Info -> Class/CR ->
-    Standard Array ability scores -> (advanced mode only: Skills & Saves,
-    Attacks & Traits) -> Review & Create.
+    NPCs get a single "basic info" step since they carry no stat block.
+    Adventurers and Enemies walk Basic Info -> Species -> Attributes ->
+    Departments -> (advanced mode only: Focuses & Values, Talents & Profile)
+    -> Review & Create. The real character data is written into an STA sheet
+    blob; the flat entity fields carry only what the list views need.
     """
 
     BINDINGS = [Binding("escape", "dismiss_screen", "Back")]
@@ -45,33 +49,30 @@ class WizardScreen(DismissableScreen):
         self.link_to_npc_id = link_to_npc_id
         self.link_rel_type = link_rel_type
         self.data = {
-            "name": "", "race": "", "race_bonus_choices": [], "alignment": "", "role": "", "status": "", "location": "",
-            "class_name": classes.CLASSES[0], "level": 1, "cr": "0", "creature_type": "",
-            "abilities": dict(zip(shm.ABILITIES, shm.STANDARD_ARRAY)),
-            "saving_throw_proficiencies": [],
-            "skill_proficiencies": {},
-            "attacks": [],
-            "special_abilities": [],
-            "resistances": "", "immunities": "", "vulnerabilities": "",
-            "ac": None, "hp_max": None,
+            "name": "", "player_name": "", "role": "", "status": "", "location": "",
+            "species": species_mod.SPECIES_NAMES[0], "species_choice_attrs": [],
+            "attributes": dict(DEFAULT_ATTRIBUTE_SPREAD),
+            "departments": dict(DEFAULT_DEPARTMENT_SPREAD),
+            "focuses": [], "values": [], "talents": [],
+            "rank": "", "career": "", "determination": 1,
+            # enemy-only flat carry-overs (may arrive via prefill)
+            "creature_type": "", "alignment": "",
         }
         if prefill:
             self.data.update(prefill)
-        self.pending_attacks: list[dict] = list(self.data["attacks"])
-        self.pending_specials: list[dict] = list(self.data["special_abilities"])
+        self.pending_focuses: list[str] = list(self.data["focuses"])
+        self.pending_values: list[str] = list(self.data["values"])
+        self.pending_talents: list[str] = list(self.data["talents"])
         self.steps = self._build_steps()
         self.step_index = 0
-        self._race_step_built_for = None
+        self._species_step_built_for = None
 
     def _build_steps(self) -> list[str]:
         if self.entity_type == "npc":
             return ["basic_npc", "review"]
-        steps = ["basic"]
-        if self.entity_type == "adventurer":
-            steps.append("race")
-        steps += ["class_or_cr", "abilities"]
+        steps = ["basic", "species", "attributes", "departments"]
         if self.mode == "advanced":
-            steps += ["skills_saves", "attacks_traits"]
+            steps += ["focuses_values", "talents_profile"]
         steps.append("review")
         return steps
 
@@ -127,37 +128,40 @@ class WizardScreen(DismissableScreen):
         await self._render_step()
 
     async def on_button_pressed(self, event: Button.Pressed):
-        if event.button.id == "btn-wiz-back":
+        bid = event.button.id
+        if bid == "btn-wiz-back":
             await self._go_back()
-        elif event.button.id == "btn-wiz-next":
+        elif bid == "btn-wiz-next":
             await self._go_next()
-        elif event.button.id == "btn-wiz-reset-array":
-            self._reset_ability_inputs_to_standard_array()
-        elif event.button.id == "btn-wiz-add-attack":
-            self._add_attack()
-        elif event.button.id == "btn-wiz-remove-attack":
-            self._remove_attack()
-        elif event.button.id == "btn-wiz-add-special":
-            self._add_special()
-        elif event.button.id == "btn-wiz-remove-special":
-            self._remove_special()
+        elif bid == "btn-wiz-reset-attrs":
+            self._reset_inputs(DEFAULT_ATTRIBUTE_SPREAD, "wiz-attr")
+        elif bid == "btn-wiz-reset-depts":
+            self._reset_inputs(DEFAULT_DEPARTMENT_SPREAD, "wiz-dept")
+        elif bid == "btn-wiz-add-focus":
+            self._add_simple("wiz-focus-input", self.pending_focuses, "wiz-list-focuses")
+        elif bid == "btn-wiz-remove-focus":
+            self._remove_simple(self.pending_focuses, "wiz-list-focuses")
+        elif bid == "btn-wiz-add-value":
+            self._add_simple("wiz-value-input", self.pending_values, "wiz-list-values")
+        elif bid == "btn-wiz-remove-value":
+            self._remove_simple(self.pending_values, "wiz-list-values")
+        elif bid == "btn-wiz-add-talent":
+            self._add_simple("wiz-talent-input", self.pending_talents, "wiz-list-talents")
+        elif bid == "btn-wiz-remove-talent":
+            self._remove_simple(self.pending_talents, "wiz-list-talents")
 
     # -- step builders ------------------------------------------------
 
     async def _build_step_basic_npc(self, container):
-        alignment_choices = schema_choices("npc", "alignment")
         status_choices = schema_choices("npc", "status")
         await container.mount(
             Static("[bold]Basic Info[/]"),
             Label("Name"), Input(value=self.data["name"], id="wiz-name"),
-            Label("Race"), Input(value=self.data["race"], id="wiz-race"),
+            Label("Species"), Input(value=self.data.get("species_text", ""), id="wiz-species-text"),
             Label("Role / Title"), Input(value=self.data["role"], id="wiz-role"),
-            Label("Alignment"),
-            Select([(a, a) for a in alignment_choices], id="wiz-alignment",
-                   value=self.data["alignment"] or Select.NULL, allow_blank=True, prompt="Select alignment..."),
             Label("Status"),
             Select([(s, s) for s in status_choices], id="wiz-status",
-                    value=self.data["status"] or Select.NULL, allow_blank=True, prompt="Select status..."),
+                   value=self.data["status"] or Select.NULL, allow_blank=True, prompt="Select status..."),
             Label("Current Location"),
             Select(entity_ref_options("location", self.data["location"]), id="wiz-location",
                    value=self.data["location"] or Select.NULL, allow_blank=True, prompt="Select location..."),
@@ -168,169 +172,125 @@ class WizardScreen(DismissableScreen):
             Static("[bold]Basic Info[/]"),
             Label("Name"), Input(value=self.data["name"], id="wiz-name"),
         ]
-        alignment_choices = schema_choices(self.entity_type, "alignment")
-        widgets += [
-            Label("Alignment"),
-            Select([(a, a) for a in alignment_choices], id="wiz-alignment",
-                   value=self.data["alignment"] or Select.NULL, allow_blank=True, prompt="Select alignment..."),
-        ]
+        if self.entity_type == "adventurer":
+            widgets += [Label("Player Name"), Input(value=self.data["player_name"], id="wiz-player-name")]
         await container.mount(*widgets)
 
-    async def _build_step_race(self, container):
-        current_race = self.data["race"] if self.data["race"] in races.RACES else races.RACE_NAMES[0]
-        self._race_step_built_for = current_race
-        race_data = races.RACES[current_race]
+    async def _build_step_species(self, container):
+        current = self.data["species"] if self.data["species"] in species_mod.SPECIES else species_mod.SPECIES_NAMES[0]
+        self._species_step_built_for = current
+        data = species_mod.SPECIES[current]
         widgets = [
-            Static("[bold]Race[/]"),
-            Label("Race"),
-            Select([(name, name) for name in races.RACE_NAMES], id="wiz-race-select",
-                   allow_blank=False, value=current_race),
+            Static("[bold]Species[/]"),
+            Label("Species"),
+            Select([(name, name) for name in species_mod.SPECIES_NAMES], id="wiz-species-select",
+                   allow_blank=False, value=current),
         ]
-        choice_bonus = race_data.get("choice_bonus", 0)
+        choice_bonus = data.get("choice_bonus", 0)
         if choice_bonus:
-            ability_options = [(shm.ABILITY_LABELS[a], a) for a in shm.ABILITIES]
-            choices = self.data["race_bonus_choices"]
-            widgets += [
-                Static(f"[dim]Choose {choice_bonus} different abilities to each get +1[/]"),
-                Label("Bonus Ability 1"),
-                Select(ability_options, id="wiz-race-choice-0", allow_blank=False,
-                       value=choices[0] if len(choices) > 0 else "dex"),
-                Label("Bonus Ability 2"),
-                Select(ability_options, id="wiz-race-choice-1", allow_blank=False,
-                       value=choices[1] if len(choices) > 1 else "wis"),
-            ]
-        bonus_parts = [f"{a.upper()} +{b}" for a, b in race_data["ability_bonuses"].items()]
-        if choice_bonus:
-            bonus_parts.append(f"+1 to {choice_bonus} chosen abilities")
-        summary = f"Speed {race_data['speed']} ft.   Bonuses: {', '.join(bonus_parts)}"
-        if race_data["senses"]:
-            summary += f"   {race_data['senses']}"
-        widgets.append(Static(f"[dim]{summary}[/]"))
+            attr_options = [(sta.ATTRIBUTE_LABELS[a], a) for a in sta.ATTRIBUTES]
+            chosen = self.data["species_choice_attrs"]
+            widgets.append(Static(f"[dim]Choose {choice_bonus} different Attributes to each get +1[/]"))
+            defaults = ["control", "presence", "fitness"]
+            for i in range(choice_bonus):
+                widgets += [
+                    Label(f"Bonus Attribute {i + 1}"),
+                    Select(attr_options, id=f"wiz-species-choice-{i}", allow_blank=False,
+                           value=chosen[i] if i < len(chosen) else defaults[i % len(defaults)]),
+                ]
+        else:
+            parts = [f"{sta.ATTRIBUTE_LABELS[a]} +{b}" for a, b in data["attribute_bonuses"].items()]
+            widgets.append(Static(f"[dim]Attribute bonuses: {', '.join(parts)}[/]"))
+        if data.get("focus_suggestions"):
+            widgets.append(Static(f"[dim]Suggested Focuses: {', '.join(data['focus_suggestions'])}[/]"))
         await container.mount(*widgets)
 
-    @on(Select.Changed, "#wiz-race-select")
-    async def _on_wiz_race_changed(self, event: Select.Changed):
-        if self.steps[self.step_index] != "race":
+    @on(Select.Changed, "#wiz-species-select")
+    async def _on_species_changed(self, event: Select.Changed):
+        if self.steps[self.step_index] != "species":
             return
-        new_race = str(event.value)
-        # Select fires Changed on its own initial mount (no-value -> default
-        # value); only re-render for an actual user-driven change, or this
-        # re-enters _render_step() while the original mount is still in
-        # progress and corrupts later widgets.
-        if new_race == self._race_step_built_for:
+        new_species = str(event.value)
+        # Select fires Changed on its own initial mount; only re-render on an
+        # actual user-driven change, or this re-enters _render_step() while the
+        # original mount is still in progress and corrupts later widgets.
+        if new_species == self._species_step_built_for:
             return
-        self.data["race"] = new_race
+        self.data["species"] = new_species
         await self._render_step()
 
-    async def _build_step_class_or_cr(self, container):
-        if self.entity_type == "adventurer":
-            await container.mount(
-                Static("[bold]Class & Level[/]"),
-                Label("Class"),
-                Select([(c, c) for c in classes.CLASSES], id="wiz-class", allow_blank=False, value=self.data["class_name"]),
-                Label("Level"),
-                Input(value=str(self.data["level"]), id="wiz-level", classes="stat-input"),
-            )
-        else:
-            await container.mount(
-                Static("[bold]Challenge Rating[/]"),
-                Label("Creature Type"),
-                Input(value=self.data["creature_type"], placeholder="e.g. Humanoid", id="wiz-creature-type"),
-                Label("Challenge Rating"),
-                Input(value=self.data["cr"], placeholder="e.g. 1/2", id="wiz-cr", classes="stat-input"),
-            )
-
-    async def _build_step_abilities(self, container):
+    async def _build_step_attributes(self, container):
         rows = []
-        for a in shm.ABILITIES:
-            bonus = races.ability_bonus_total(self.data["race"], a, self.data["race_bonus_choices"]) if self.entity_type == "adventurer" else 0
+        for a in sta.ATTRIBUTES:
+            bonus = species_mod.attribute_bonus_total(self.data["species"], a, self.data["species_choice_attrs"]) if self.entity_type == "adventurer" else 0
             rows.append(Horizontal(
-                Label(shm.ABILITY_LABELS[a], classes="ability-label"),
-                Input(value=str(self.data["abilities"][a]), id=f"wiz-ability-{a}", classes="ability-input"),
-                Static(f"+{bonus} race" if bonus else "", classes="race-bonus-badge"),
+                Label(sta.ATTRIBUTE_LABELS[a], classes="ability-label"),
+                Input(value=str(self.data["attributes"][a]), id=f"wiz-attr-{a}", classes="ability-input"),
+                Static(f"+{bonus} species" if bonus else "", classes="race-bonus-badge"),
                 classes="ability-row",
             ))
-        widgets = [Static(f"[bold]Ability Scores[/] - assign the Standard Array {shm.STANDARD_ARRAY}")]
-        if self.entity_type == "adventurer":
-            class_name = self.data.get("class_name", "")
-            primary = classes.CLASS_PRIMARY_ABILITY.get(class_name, "")
-            spell_ab = classes.CLASS_SPELLCASTING_ABILITY.get(class_name)
-            parts = []
-            if primary:
-                parts.append(f"Primary: {primary.upper()}")
-            if spell_ab:
-                parts.append(f"Spellcasting: {spell_ab.upper()}")
-            if parts:
-                widgets.append(Static("  ".join(parts), classes="wiz-class-hint"))
-        await container.mount(*widgets, *rows, Button("Reset to Standard Array Order", id="btn-wiz-reset-array"))
-
-    async def _build_step_skills_saves(self, container):
-        save_rows = [
-            Horizontal(
-                Label(shm.ABILITY_LABELS[a], classes="save-label"),
-                Switch(value=a in self.data["saving_throw_proficiencies"], id=f"wiz-save-{a}"),
-                classes="save-row",
-            )
-            for a in shm.ABILITIES
-        ]
-        skill_rows = [
-            Horizontal(
-                Label(f"{shm.SKILL_LABELS[s]} ({shm.SKILLS[s].upper()})", classes="skill-label"),
-                Select(SKILL_LEVEL_OPTIONS, value=self.data["skill_proficiencies"].get(s, "none"), id=f"wiz-skill-{s}", allow_blank=False),
-                classes="skill-row",
-            )
-            for s in shm.SKILLS
-        ]
         await container.mount(
-            Static("[bold]Saving Throws[/] (suggested by class, editable)" if self.entity_type == "adventurer" else "[bold]Saving Throws[/]"),
-            *save_rows,
-            Static("[bold]Skills[/]"),
-            *skill_rows,
+            Static("[bold]Attributes[/] - assign values (7-12); species bonuses stack on top"),
+            *rows,
+            Button("Reset to Suggested Spread", id="btn-wiz-reset-attrs"),
         )
 
-    async def _build_step_attacks_traits(self, container):
+    async def _build_step_departments(self, container):
+        rows = [
+            Horizontal(
+                Label(sta.DEPARTMENT_LABELS[d], classes="ability-label"),
+                Input(value=str(self.data["departments"][d]), id=f"wiz-dept-{d}", classes="ability-input"),
+                classes="ability-row",
+            )
+            for d in sta.DEPARTMENTS
+        ]
         await container.mount(
-            Static("[bold]Attacks[/]"),
-            Horizontal(
-                Input(placeholder="Name", id="wiz-attack-name"),
-                Input(placeholder="To-Hit Bonus", id="wiz-attack-bonus"),
-                Input(placeholder="Damage (e.g. 1d6+2)", id="wiz-attack-damage"),
-                Input(placeholder="Damage Type", id="wiz-attack-damage-type"),
-                id="wiz-attack-inputs",
-            ),
-            Horizontal(
-                Button("+ Add Attack", id="btn-wiz-add-attack"),
-                Button("Remove Selected", id="btn-wiz-remove-attack"),
-                id="wiz-attack-actions",
-            ),
-            ListView(id="wiz-list-attacks"),
-            Static("[bold]Resistances / Immunities / Vulnerabilities[/]"),
-            Input(value=self.data["resistances"], placeholder="Resistances", id="wiz-resistances"),
-            Input(value=self.data["immunities"], placeholder="Immunities", id="wiz-immunities"),
-            Input(value=self.data["vulnerabilities"], placeholder="Vulnerabilities", id="wiz-vulnerabilities"),
-            Static("[bold]Special Abilities[/]"),
-            Horizontal(
-                Input(placeholder="Name", id="wiz-special-name"),
-                Input(placeholder="Description", id="wiz-special-desc"),
-                id="wiz-special-inputs",
-            ),
-            Horizontal(
-                Button("+ Add Special Ability", id="btn-wiz-add-special"),
-                Button("Remove Selected", id="btn-wiz-remove-special"),
-                id="wiz-special-actions",
-            ),
-            ListView(id="wiz-list-specials"),
+            Static("[bold]Departments[/] - assign values (0-5)"),
+            *rows,
+            Button("Reset to Suggested Spread", id="btn-wiz-reset-depts"),
         )
-        self._refresh_wiz_attacks_list()
-        self._refresh_wiz_specials_list()
+
+    async def _build_step_focuses_values(self, container):
+        await container.mount(
+            Static("[bold]Focuses[/] (areas of expertise that sharpen a Task roll)"),
+            Horizontal(
+                Input(placeholder="e.g. Astrophysics", id="wiz-focus-input"),
+                Button("+ Add", id="btn-wiz-add-focus"),
+                Button("Remove Selected", id="btn-wiz-remove-focus"),
+            ),
+            ListView(id="wiz-list-focuses"),
+            Static("[bold]Values[/] (beliefs that can be invoked or challenged)"),
+            Horizontal(
+                Input(placeholder="e.g. The needs of the many", id="wiz-value-input"),
+                Button("+ Add", id="btn-wiz-add-value"),
+                Button("Remove Selected", id="btn-wiz-remove-value"),
+            ),
+            ListView(id="wiz-list-values"),
+        )
+        self._refresh_list(self.pending_focuses, "wiz-list-focuses")
+        self._refresh_list(self.pending_values, "wiz-list-values")
+
+    async def _build_step_talents_profile(self, container):
+        await container.mount(
+            Static("[bold]Talents[/]"),
+            Horizontal(
+                Input(placeholder="Talent name", id="wiz-talent-input"),
+                Button("+ Add", id="btn-wiz-add-talent"),
+                Button("Remove Selected", id="btn-wiz-remove-talent"),
+            ),
+            ListView(id="wiz-list-talents"),
+            Static("[bold]Profile[/]"),
+            Label("Rank"), Input(value=self.data["rank"], id="wiz-rank", placeholder="e.g. Lieutenant"),
+            Label("Career / Track"), Input(value=self.data["career"], id="wiz-career", placeholder="e.g. Officer"),
+            Label("Role"), Input(value=self.data["role"], id="wiz-role", placeholder="e.g. Chief Engineer"),
+        )
+        self._refresh_list(self.pending_talents, "wiz-list-talents")
 
     async def _build_step_review(self, container):
         if self.entity_type == "npc":
             lines = [
                 f"[bold]{self.data['name'] or '(unnamed)'}[/] - NPC",
-                f"  Race: {self.data['race']}   Role: {self.data['role']}",
-                f"  Alignment: {self.data['alignment']}   Status: {self.data['status']}",
-                f"  Location: {self.data['location']}",
+                f"  Species: {self.data.get('species_text', '')}   Role: {self.data['role']}",
+                f"  Status: {self.data['status']}   Location: {self.data['location']}",
             ]
             await container.mount(
                 Static("[bold]Review & Create[/]"),
@@ -338,50 +298,38 @@ class WizardScreen(DismissableScreen):
             )
             return
 
-        self._apply_class_defaults()
-        abilities = self._effective_abilities()
-        con_mod = shm.ability_modifier(abilities["con"])
-        dex_mod = shm.ability_modifier(abilities["dex"])
-        suggested_ac = shm.suggested_ac(dex_mod)
-        if self.entity_type == "adventurer":
-            suggested_hp = classes.suggested_hp(self.data["class_name"], self.data["level"], con_mod)
-        else:
-            suggested_hp = 10
-
+        attributes = self._effective_attributes()
+        fitness = attributes["fitness"]
+        security = self.data["departments"]["security"]
         lines = [f"[bold]{self.data['name'] or '(unnamed)'}[/] - {ENTITY_LABELS[self.entity_type]}"]
-        ability_parts = [
-            f"{a.upper()} {abilities[a]} ({shm.format_modifier(shm.ability_modifier(abilities[a]))})"
-            for a in shm.ABILITIES
-        ]
-        lines.append("  " + "  ".join(ability_parts))
+        attr_parts = [f"{sta.ATTRIBUTE_LABELS[a]} {attributes[a]}" for a in sta.ATTRIBUTES]
+        lines.append("  " + "   ".join(attr_parts))
+        dept_parts = [f"{sta.DEPARTMENT_LABELS[d]} {self.data['departments'][d]}" for d in sta.DEPARTMENTS]
+        lines.append("  " + "   ".join(dept_parts))
         if self.entity_type == "adventurer":
-            lines.append(f"  Race: {self.data['race']}   Class: {self.data['class_name']}   Level: {self.data['level']}")
+            lines.append(f"  Species: {self.data['species']}   Base Stress: {fitness + security} (Fitness + Security)")
         else:
-            lines.append(f"  CR: {self.data['cr']}   Creature Type: {self.data['creature_type']}")
-        if self.data["saving_throw_proficiencies"]:
-            lines.append(f"  Saves: {', '.join(a.upper() for a in self.data['saving_throw_proficiencies'])}")
-        if self.data["skill_proficiencies"]:
-            lines.append(f"  Skills: {', '.join(shm.SKILL_LABELS[s] for s in self.data['skill_proficiencies'])}")
-        if self.data["attacks"]:
-            lines.append(f"  Attacks: {', '.join(a.get('name', '?') for a in self.data['attacks'])}")
+            lines.append(f"  Species: {self.data['species']}   Base Stress: {fitness + security}")
+        if self.pending_focuses:
+            lines.append(f"  Focuses: {', '.join(self.pending_focuses)}")
+        if self.pending_values:
+            lines.append(f"  Values: {', '.join(self.pending_values)}")
+        if self.pending_talents:
+            lines.append(f"  Talents: {', '.join(self.pending_talents)}")
 
         await container.mount(
             Static("[bold]Review & Create[/]"),
             Static("\n".join(lines), id="wiz-review-summary"),
-            Label("Armor Class"),
-            Input(value=str(self.data["ac"] if self.data["ac"] is not None else suggested_ac), id="wiz-final-ac"),
-            Label("HP Max"),
-            Input(value=str(self.data["hp_max"] if self.data["hp_max"] is not None else suggested_hp), id="wiz-final-hp"),
+            Label("Starting Determination (0-3)"),
+            Input(value=str(self.data["determination"]), id="wiz-determination", classes="ability-input"),
         )
 
     # -- step data collection ------------------------------------------
 
     def _collect_step_basic_npc(self):
         self.data["name"] = self.query_one("#wiz-name", Input).value.strip()
-        self.data["race"] = self.query_one("#wiz-race", Input).value.strip()
+        self.data["species_text"] = self.query_one("#wiz-species-text", Input).value.strip()
         self.data["role"] = self.query_one("#wiz-role", Input).value.strip()
-        align = self.query_one("#wiz-alignment", Select).value
-        self.data["alignment"] = "" if align is Select.NULL else str(align)
         status = self.query_one("#wiz-status", Select).value
         self.data["status"] = "" if status is Select.NULL else str(status)
         location = self.query_one("#wiz-location", Select).value
@@ -392,152 +340,110 @@ class WizardScreen(DismissableScreen):
 
     def _collect_step_basic(self):
         self.data["name"] = self.query_one("#wiz-name", Input).value.strip()
-        align = self.query_one("#wiz-alignment", Select).value
-        self.data["alignment"] = "" if align is Select.NULL else str(align)
+        if self.entity_type == "adventurer":
+            self.data["player_name"] = self.query_one("#wiz-player-name", Input).value.strip()
         if not self.data["name"]:
             return "Name is required."
         return None
 
-    def _collect_step_race(self):
-        selected = str(self.query_one("#wiz-race-select", Select).value)
-        self.data["race"] = selected
-        choice_bonus = races.RACES.get(selected, {}).get("choice_bonus", 0)
+    def _collect_step_species(self):
+        self.data["species"] = str(self.query_one("#wiz-species-select", Select).value)
+        choice_bonus = species_mod.SPECIES.get(self.data["species"], {}).get("choice_bonus", 0)
         if choice_bonus:
-            choice_0 = str(self.query_one("#wiz-race-choice-0", Select).value)
-            choice_1 = str(self.query_one("#wiz-race-choice-1", Select).value)
-            if choice_0 == choice_1:
-                return "Choose two different abilities for the racial bonus."
-            self.data["race_bonus_choices"] = [choice_0, choice_1]
+            chosen = [str(self.query_one(f"#wiz-species-choice-{i}", Select).value) for i in range(choice_bonus)]
+            if len(set(chosen)) != len(chosen):
+                return f"Choose {choice_bonus} different Attributes for the species bonus."
+            self.data["species_choice_attrs"] = chosen
         else:
-            self.data["race_bonus_choices"] = []
+            self.data["species_choice_attrs"] = []
         return None
 
-    def _collect_step_class_or_cr(self):
-        if self.entity_type == "adventurer":
-            self.data["class_name"] = str(self.query_one("#wiz-class", Select).value)
-            try:
-                self.data["level"] = max(1, int(self.query_one("#wiz-level", Input).value.strip() or 1))
-            except ValueError:
-                return "Level must be a number."
-            self.data["saving_throw_proficiencies"] = list(classes.CLASS_SAVING_THROWS.get(self.data["class_name"], []))
-        else:
-            self.data["creature_type"] = self.query_one("#wiz-creature-type", Input).value.strip()
-            self.data["cr"] = self.query_one("#wiz-cr", Input).value.strip() or "0"
-        return None
-
-    def _collect_step_abilities(self):
+    def _collect_step_attributes(self):
         scores = {}
-        for a in shm.ABILITIES:
-            raw = self.query_one(f"#wiz-ability-{a}", Input).value.strip()
+        for a in sta.ATTRIBUTES:
+            raw = self.query_one(f"#wiz-attr-{a}", Input).value.strip()
             try:
-                scores[a] = int(raw)
+                value = int(raw)
             except ValueError:
-                return "Ability scores must be whole numbers."
-        if not shm.matches_standard_array(scores):
-            return f"Scores must use each Standard Array value exactly once: {shm.STANDARD_ARRAY}"
-        self.data["abilities"] = scores
+                return "Attributes must be whole numbers."
+            if not 1 <= value <= 20:
+                return "Attributes must be between 1 and 20."
+            scores[a] = value
+        self.data["attributes"] = scores
         return None
 
-    def _collect_step_skills_saves(self):
-        self.data["saving_throw_proficiencies"] = [a for a in shm.ABILITIES if self.query_one(f"#wiz-save-{a}", Switch).value]
-        skills = {}
-        for s in shm.SKILLS:
-            value = str(self.query_one(f"#wiz-skill-{s}", Select).value)
-            if value != "none":
-                skills[s] = value
-        self.data["skill_proficiencies"] = skills
+    def _collect_step_departments(self):
+        scores = {}
+        for d in sta.DEPARTMENTS:
+            raw = self.query_one(f"#wiz-dept-{d}", Input).value.strip()
+            try:
+                value = int(raw)
+            except ValueError:
+                return "Departments must be whole numbers."
+            if not 0 <= value <= 10:
+                return "Departments must be between 0 and 10."
+            scores[d] = value
+        self.data["departments"] = scores
         return None
 
-    def _collect_step_attacks_traits(self):
-        self.data["attacks"] = list(self.pending_attacks)
-        self.data["special_abilities"] = list(self.pending_specials)
-        self.data["resistances"] = self.query_one("#wiz-resistances", Input).value.strip()
-        self.data["immunities"] = self.query_one("#wiz-immunities", Input).value.strip()
-        self.data["vulnerabilities"] = self.query_one("#wiz-vulnerabilities", Input).value.strip()
+    def _collect_step_focuses_values(self):
+        self.data["focuses"] = list(self.pending_focuses)
+        self.data["values"] = list(self.pending_values)
+        return None
+
+    def _collect_step_talents_profile(self):
+        self.data["talents"] = list(self.pending_talents)
+        self.data["rank"] = self.query_one("#wiz-rank", Input).value.strip()
+        self.data["career"] = self.query_one("#wiz-career", Input).value.strip()
+        self.data["role"] = self.query_one("#wiz-role", Input).value.strip()
         return None
 
     def _collect_step_review(self):
         if self.entity_type == "npc":
             return None
+        raw = self.query_one("#wiz-determination", Input).value.strip()
         try:
-            self.data["ac"] = int(self.query_one("#wiz-final-ac", Input).value.strip())
-            self.data["hp_max"] = int(self.query_one("#wiz-final-hp", Input).value.strip())
+            det = int(raw)
         except ValueError:
-            return "AC and HP must be whole numbers."
+            return "Determination must be a whole number."
+        self.data["determination"] = max(0, min(sta.DETERMINATION_MAX, det))
         return None
+
+    # -- list helpers ---------------------------------------------------
+
+    def _add_simple(self, input_id: str, target: list, list_id: str):
+        widget = self.query_one(f"#{input_id}", Input)
+        text = widget.value.strip()
+        if text:
+            target.append(text)
+            widget.value = ""
+            self._refresh_list(target, list_id)
+
+    def _remove_simple(self, target: list, list_id: str):
+        lv = self.query_one(f"#{list_id}", ListView)
+        if lv.index is not None and lv.index < len(target):
+            del target[lv.index]
+            self._refresh_list(target, list_id)
+
+    def _refresh_list(self, items: list, list_id: str):
+        lv = self.query_one(f"#{list_id}", ListView)
+        lv.clear()
+        for item in items:
+            lv.append(ListItem(Label(str(item))))
+
+    def _reset_inputs(self, spread: dict, prefix: str):
+        for key, value in spread.items():
+            self.query_one(f"#{prefix}-{key}", Input).value = str(value)
 
     # -- helpers --------------------------------------------------------
 
-    def _apply_class_defaults(self):
-        """Make sure saving throws are seeded from the class even in quick
-        mode, where the skills_saves step never runs to confirm them."""
-        if self.entity_type == "adventurer" and not self.data["saving_throw_proficiencies"]:
-            self.data["saving_throw_proficiencies"] = list(classes.CLASS_SAVING_THROWS.get(self.data["class_name"], []))
-
-    def _effective_abilities(self) -> dict:
-        """The raw Standard Array assignment stays untouched in self.data so
-        going Back to the Abilities step and forward again still validates;
-        the race bonus is only ever applied to a derived copy, computed
-        on demand here."""
-        if self.entity_type == "adventurer" and self.data["race"] in races.RACES:
-            return races.apply_bonuses(self.data["abilities"], self.data["race"], self.data["race_bonus_choices"])
-        return dict(self.data["abilities"])
-
-    def _reset_ability_inputs_to_standard_array(self):
-        for a, score in zip(shm.ABILITIES, shm.STANDARD_ARRAY):
-            self.query_one(f"#wiz-ability-{a}", Input).value = str(score)
-
-    def _refresh_wiz_attacks_list(self):
-        lv = self.query_one("#wiz-list-attacks", ListView)
-        lv.clear()
-        for atk in self.pending_attacks:
-            bonus = shm.format_modifier(int(atk.get("bonus", 0) or 0))
-            text = f"{atk.get('name', '?')} {bonus} to hit, {atk.get('damage', '')} {atk.get('damage_type', '')}".rstrip()
-            lv.append(ListItem(Label(text)))
-
-    def _refresh_wiz_specials_list(self):
-        lv = self.query_one("#wiz-list-specials", ListView)
-        lv.clear()
-        for sa in self.pending_specials:
-            lv.append(ListItem(Label(f"{sa.get('name', '?')}: {sa.get('description', '')}")))
-
-    def _add_attack(self):
-        name = self.query_one("#wiz-attack-name", Input).value.strip()
-        if not name:
-            return
-        bonus_raw = self.query_one("#wiz-attack-bonus", Input).value.strip()
-        try:
-            bonus = int(bonus_raw) if bonus_raw else 0
-        except ValueError:
-            bonus = 0
-        damage = self.query_one("#wiz-attack-damage", Input).value.strip()
-        damage_type = self.query_one("#wiz-attack-damage-type", Input).value.strip()
-        self.pending_attacks.append({"name": name, "bonus": bonus, "damage": damage, "damage_type": damage_type})
-        for widget_id in ("#wiz-attack-name", "#wiz-attack-bonus", "#wiz-attack-damage", "#wiz-attack-damage-type"):
-            self.query_one(widget_id, Input).value = ""
-        self._refresh_wiz_attacks_list()
-
-    def _remove_attack(self):
-        lv = self.query_one("#wiz-list-attacks", ListView)
-        if lv.index is not None and lv.index < len(self.pending_attacks):
-            del self.pending_attacks[lv.index]
-            self._refresh_wiz_attacks_list()
-
-    def _add_special(self):
-        name = self.query_one("#wiz-special-name", Input).value.strip()
-        if not name:
-            return
-        desc = self.query_one("#wiz-special-desc", Input).value.strip()
-        self.pending_specials.append({"name": name, "description": desc})
-        self.query_one("#wiz-special-name", Input).value = ""
-        self.query_one("#wiz-special-desc", Input).value = ""
-        self._refresh_wiz_specials_list()
-
-    def _remove_special(self):
-        lv = self.query_one("#wiz-list-specials", ListView)
-        if lv.index is not None and lv.index < len(self.pending_specials):
-            del self.pending_specials[lv.index]
-            self._refresh_wiz_specials_list()
+    def _effective_attributes(self) -> dict:
+        """The raw assigned spread stays untouched in self.data so going Back
+        and forward still validates; species bonuses are only ever applied to
+        a derived copy, computed on demand here."""
+        if self.entity_type == "adventurer" and self.data["species"] in species_mod.SPECIES:
+            return species_mod.apply_bonuses(self.data["attributes"], self.data["species"], self.data["species_choice_attrs"])
+        return dict(self.data["attributes"])
 
     # -- final creation ---------------------------------------------------
 
@@ -547,9 +453,8 @@ class WizardScreen(DismissableScreen):
 
         if self.entity_type == "npc":
             fields = {
-                "race": self.data["race"],
+                "race": self.data.get("species_text", ""),
                 "role": self.data["role"],
-                "alignment": self.data["alignment"],
                 "status": self.data["status"] or "Alive",
                 "location": self.data["location"],
             }
@@ -558,49 +463,36 @@ class WizardScreen(DismissableScreen):
             self.app.push_screen(EntityDetailScreen(entity_id))
             return
 
-        sheet_data = shm.default_sheet()
-        sheet_data["abilities"] = self._effective_abilities()
-        sheet_data["ac"] = self.data["ac"]
-        sheet_data["hp_max"] = self.data["hp_max"]
-        sheet_data["hp_current"] = self.data["hp_max"]
-        sheet_data["saving_throw_proficiencies"] = list(self.data["saving_throw_proficiencies"])
-        sheet_data["skill_proficiencies"] = dict(self.data["skill_proficiencies"])
-        sheet_data["attacks"] = list(self.data["attacks"])
-        sheet_data["special_abilities"] = list(self.data["special_abilities"])
-        sheet_data["resistances"] = self.data["resistances"]
-        sheet_data["immunities"] = self.data["immunities"]
-        sheet_data["vulnerabilities"] = self.data["vulnerabilities"]
+        sheet = sta.default_sheet()
+        sheet["attributes"] = self._effective_attributes()
+        sheet["departments"] = dict(self.data["departments"])
+        sheet["focuses"] = list(self.pending_focuses)
+        sheet["values"] = list(self.pending_values)
+        sheet["talents"] = list(self.pending_talents)
+        sheet["species"] = self.data["species"]
+        sheet["rank"] = self.data["rank"]
+        sheet["career"] = self.data["career"]
+        sheet["role"] = self.data["role"]
+        sheet["determination"] = self.data["determination"]
 
         if self.entity_type == "adventurer":
-            sheet_data["level"] = self.data["level"]
-            race_data = races.RACES.get(self.data["race"])
-            if race_data:
-                sheet_data["speed"] = race_data["speed"]
-                sheet_data["senses"] = race_data["senses"]
-                sheet_data["languages"] = race_data["languages"]
-            class_name = self.data["class_name"]
-            sheet_data["hit_dice"] = classes.hit_dice_notation(class_name, self.data["level"])
-            sheet_data["proficiencies"] = classes.CLASS_PROFICIENCIES.get(class_name, "")
-            spell_ab = classes.CLASS_SPELLCASTING_ABILITY.get(class_name)
-            if spell_ab:
-                sheet_data["spellcasting_ability"] = spell_ab
+            # Thin compat flat fields for the list views; the STA sheet is the
+            # source of truth. (The 5e flat schema keys are reused verbatim
+            # until the flat-schema migration in a later phase.)
             flat_fields = {
-                "race": self.data["race"],
-                "class_name": self.data["class_name"],
-                "level": str(self.data["level"]),
-                "alignment": self.data["alignment"],
+                "race": self.data["species"],
+                "class_name": self.data["career"],
+                "player_name": self.data["player_name"],
                 "status": "Active",
             }
         else:
-            sheet_data["cr"] = self.data["cr"]
-            sheet_data["creature_type"] = self.data["creature_type"]
             flat_fields = {
-                "creature_type": self.data["creature_type"],
-                "cr": self.data["cr"],
-                "alignment": self.data["alignment"],
+                "creature_type": self.data.get("species") or self.data.get("creature_type", ""),
                 "status": "Alive",
             }
-        flat_fields["sheet"] = sheet_data
+            if self.data.get("alignment"):
+                flat_fields["alignment"] = self.data["alignment"]
+        flat_fields["sheet"] = sheet
         entity_id = db.create_entity(self.entity_type, self.data["name"], flat_fields, "")
 
         if self.link_to_npc_id:

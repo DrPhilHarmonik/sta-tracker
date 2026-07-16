@@ -14,10 +14,6 @@ from screens.common import tint_border
 # Bonus d20s bought with Momentum/Threat, on top of the base 2.
 BONUS_DICE_OPTIONS = [("2 dice (base)", "0"), ("3 dice", "1"), ("4 dice", "2"), ("5 dice", "3")]
 
-# Transitional: still imported by the un-migrated 5e wizard (roadmap Phase 6).
-# Remove when the wizard moves to the STA sheet.
-SKILL_LEVEL_OPTIONS = [("None", "none"), ("Proficient", "proficient"), ("Expertise", "expertise")]
-
 
 class CharacterSheetScreen(Screen):
     """Star Trek Adventures 2e character sheet editor."""

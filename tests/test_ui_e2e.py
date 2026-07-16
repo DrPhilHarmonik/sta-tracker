@@ -19,7 +19,8 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
         async with app.run_test(size=(120, 50)) as pilot:
             await pilot.pause()
 
-            # 1. Create an adventurer via the quick wizard.
+            # 1. Create an adventurer via the quick STA lifepath wizard:
+            #    Basic -> Species -> Attributes -> Departments -> Review.
             await pilot.press("a")
             await pilot.pause()
             list_screen = app.screen
@@ -27,18 +28,18 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             await pilot.pause()
             wiz = app.screen
             wiz.query_one("#wiz-name").value = "Mira Thorn"
-            wiz.query_one("#wiz-alignment").value = "Chaotic Good"
-            await wiz._go_next()
+            await wiz._go_next()  # basic -> species
             await pilot.pause()
-            await wiz._go_next()  # accept the default race (Human)
+            wiz.query_one("#wiz-species-select").value = "Vulcan"
             await pilot.pause()
-            wiz.query_one("#wiz-level").value = "5"
-            await wiz._go_next()
+            await wiz._go_next()  # species -> attributes
             await pilot.pause()
-            await wiz._go_next()  # accept the default Standard Array
+            await wiz._go_next()  # attributes -> departments (accept spread)
+            await pilot.pause()
+            await wiz._go_next()  # departments -> review
             await pilot.pause()
             review = app.screen
-            await review._go_next()
+            await review._go_next()  # create
             await pilot.pause()
 
             adv_id = db.list_entities("adventurer")[0]["id"]

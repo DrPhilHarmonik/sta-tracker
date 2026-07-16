@@ -196,6 +196,21 @@ picking Focuses/Values/a Talent along the way. Species/track reference data
 (`species.py`, replacing `races.py`/`classes.py`) — mechanics and point spreads
 only, no copyrighted flavor text.
 
+**Status: Done.** `species.py` ships nine STA species (Human plus eight core
+Federation/neighbour species) as Attribute-bonus spreads with a Human-style
+"choose 3" option and suggested Focuses — mechanics only, no flavor text.
+`screens/wizard.py` is rewritten to the STA lifepath: Basic → Species →
+Attributes → Departments → (advanced: Focuses & Values, Talents & Profile) →
+Review (with starting Determination). It writes a full STA `sheet` blob as the
+source of truth plus thin compat flat fields for the list views. NPCs keep
+their single basic-info step. The `SKILL_LEVEL_OPTIONS` transitional shim is
+retired. `races.py`/`classes.py` stay only for the un-migrated D&D-Beyond/CSV
+importers and their unit tests (removed with the importer/5e-sheet cleanup in
+Phase 10), the same way `sheet.py` is retained. The `models.py` flat schemas
+are deliberately left on the 5e keys until that same cleanup, so the importers
+stay green. Old `test_ui_wizard_race.py` replaced by `test_ui_wizard_species.py`.
+347 tests passing.
+
 ### Phase 7 — Conflict tracker (combat)
 
 Rewrite `combat.py` + `screens/combat.py`: side-alternating turn model (no
