@@ -128,11 +128,25 @@ passing.**
 
 ### Phase 3 — Character sheet shape
 
-Rewrite `sheet.py`: `default_sheet()` / `normalize_sheet()` for Attributes (6),
-Departments (6), Focuses (list), Values (list of 4), Talents (list), Stress
-(derived + current), Determination, plus career/track/species/rank flat fields.
-Wire into `db.normalize_special_fields` unchanged (same chokepoint). Migration is
-free — the DB stores whatever shape `normalize_sheet` produces.
+**Status: Done.** New module `sta_sheet.py` (not an in-place rewrite of
+`sheet.py`). Measuring the blast radius first showed the 5e sheet shape is read
+by ~15 screens/modules (wizard, sheet, combat, entities, roll, export, both
+importers) all slated for later phases — changing the shape in place would crash
+every one of them at once and turn the suite red. So the STA sheet is introduced
+**in parallel**, the same additive strategy used for the dice engine: each
+consumer migrates onto `sta_sheet` in its own phase (sheet screen P4, wizard P6,
+combat P7, export P10), and `sheet.py` is deleted when the last reader is gone.
+The DB chokepoint is untouched this phase (no STA sheets are persisted yet).
+
+`sta_sheet.py` provides `default_sheet()` / `normalize_sheet()` for the 6
+Attributes, 6 Departments, Focuses, Values, Talents, Stress (base = Fitness +
+Security, with a preservable `stress_max` override for talent/gear bonuses),
+Determination (0–3), plus weapons, injuries, protection, and species/rank/
+career/role flat fields. Derived math: `target_number()` (Attribute + Department),
+`base_stress()`, `weapon_dice()` (rating + Security), `has_focus()` (feeds the
+2d20 critical range). No copyrighted content is bundled — Talent/Value text is
+user-entered; only mechanics live here. 15 new tests in `tests/test_sta_sheet.py`,
+including a seam check into `dice.roll_task`. **330 tests passing.**
 
 ### Phase 4 — Sheet screen
 
