@@ -143,6 +143,16 @@ tracker real Difficulty modifiers to read.
   (campaign-state or encounter-scoped) that the Task roll UI can factor into
   suggested Difficulty.
 
+**Status: Done.** New `extended.py` tracks Extended Tasks (Work total/done,
+Magnitude, base Difficulty + Resistance, with `effective_difficulty` and
+`add_work` capping/completion), persisted next to the DB. New `scene.py` holds
+the mission's Directives and the scene's Traits in a `scene.json` dict (deduped,
+per-campaign). A new `SceneScreen` (Extended Tasks / Directives & Traits tabs,
+`D` on the dashboard) manages all three. Both conflict trackers echo the active
+Directives/Traits in their summary via `scene.summary_lines()`, keeping them
+table-visible during play so the GM factors them into Difficulty. 346 tests
+passing.
+
 ## Phase 16 — Supporting Characters & spaceframe builder
 
 **Why:** Fast table prep. Both lean on the Phase 13 library pattern.

@@ -9,6 +9,7 @@ import sta_sheet as sta
 import dice
 import combat as cbt
 import conditions as cnd
+import scene as scene_lib
 from models import ENTITY_LABELS
 
 from screens.common import DismissableScreen, PALETTE, tint_border
@@ -226,6 +227,7 @@ class CombatTrackerScreen(DismissableScreen):
             )
         if not self.combat["combatants"]:
             lines.append("[dim]No combatants yet. Add some on the Combatants tab.[/dim]")
+        lines.extend(scene_lib.summary_lines())
         self.query_one("#combat-summary", Static).update("\n".join(lines))
 
     def _log(self, message: str):

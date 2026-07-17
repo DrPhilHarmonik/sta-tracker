@@ -8,6 +8,7 @@ import db
 import starship as ship
 import dice
 import ship_combat as sc
+import scene as scene_lib
 from models import ENTITY_LABELS
 
 from screens.common import DismissableScreen, PALETTE, tint_border
@@ -219,6 +220,7 @@ class ShipConflictScreen(DismissableScreen):
             )
         if not self.state["ships"]:
             lines.append("[dim]No ships yet. Add some on the Ships tab.[/dim]")
+        lines.extend(scene_lib.summary_lines())
         self.query_one("#ship-combat-summary", Static).update("\n".join(lines))
 
     def _log(self, message: str):
