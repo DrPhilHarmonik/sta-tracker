@@ -1,0 +1,783 @@
+{
+  "format": "dm-tracker-backup",
+  "version": 1,
+  "exported_at": "2026-07-17T00:28:34",
+  "entities": [
+    {
+      "id": 1,
+      "type": "starship",
+      "name": "USS Wayfarer",
+      "fields": {
+        "spaceframe": "Wayfarer-class Surveyor",
+        "registry": "NCC-74210",
+        "service_year": "2401",
+        "mission_profile": "Pathfinder / Reconnaissance",
+        "scale": "4",
+        "sheet": {
+          "systems": {
+            "comms": 8,
+            "computers": 9,
+            "engines": 10,
+            "sensors": 11,
+            "structure": 9,
+            "weapons": 8
+          },
+          "departments": {
+            "command": 3,
+            "conn": 3,
+            "engineering": 3,
+            "security": 2,
+            "medicine": 2,
+            "science": 3
+          },
+          "scale": 4,
+          "shields_max": 11,
+          "shields_current": 11,
+          "crew_support": 4,
+          "talents": [
+            "Advanced Sensor Suites",
+            "Redundant Systems (Sensors)"
+          ],
+          "weapons": [],
+          "traits": [
+            "Federation Starship"
+          ],
+          "spaceframe": "",
+          "registry": "",
+          "service_year": "",
+          "mission_profile": "",
+          "notes": "The players' ship. A science-forward surveyor: superb sensors, modest weapons. Reward good SCIENCE + Sensors Tasks; she is out-gunned in a straight fight and should use the Expanse's cover and clever maneuvering instead."
+        }
+      },
+      "notes": "Assign or replace with the players' own ship. Stats tuned for Scale 4.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 2,
+      "type": "starship",
+      "name": "Ashfall Raider Cinder",
+      "fields": {
+        "spaceframe": "Modified Freighter (raider refit)",
+        "registry": "none (Syndicate)",
+        "service_year": "unknown",
+        "mission_profile": "Piracy / Salvage",
+        "scale": "3",
+        "sheet": {
+          "systems": {
+            "comms": 7,
+            "computers": 7,
+            "engines": 9,
+            "sensors": 8,
+            "structure": 8,
+            "weapons": 10
+          },
+          "departments": {
+            "command": 2,
+            "conn": 3,
+            "engineering": 2,
+            "security": 3,
+            "medicine": 1,
+            "science": 1
+          },
+          "scale": 3,
+          "shields_max": 11,
+          "shields_current": 11,
+          "crew_support": 3,
+          "talents": [
+            "Improved Impulse Drive"
+          ],
+          "weapons": [],
+          "traits": [
+            "Ashfall Raider",
+            "Jury-Rigged Weapons"
+          ],
+          "spaceframe": "",
+          "registry": "",
+          "service_year": "",
+          "mission_profile": "",
+          "notes": "The antagonist ship. Fast and heavily armed for its Scale, but fragile and poorly crewed. Add it to the ADVERSARY side of a Ship Conflict."
+        }
+      },
+      "notes": "Draex Kol's raider. Use in the 'Standoff over the Expanse' encounter.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 3,
+      "type": "enemy",
+      "name": "Draex Kol",
+      "fields": {
+        "species": "Tellarite",
+        "kind": "Major NPC",
+        "role": "Ashfall Crew Boss",
+        "status": "Alive",
+        "sheet": {
+          "attributes": {
+            "control": 9,
+            "daring": 11,
+            "fitness": 10,
+            "insight": 9,
+            "presence": 11,
+            "reason": 8
+          },
+          "departments": {
+            "command": 4,
+            "conn": 2,
+            "engineering": 2,
+            "security": 4,
+            "medicine": 1,
+            "science": 1
+          },
+          "focuses": [
+            "Intimidation",
+            "Salvage Operations",
+            "Close-Quarters Combat"
+          ],
+          "values": [
+            "Everything has a price -- especially loyalty"
+          ],
+          "talents": [
+            "Bold: Command",
+            "Menacing"
+          ],
+          "stress_max": 13,
+          "stress_current": 13,
+          "determination": 2,
+          "protection": 2,
+          "weapons": [
+            {
+              "name": "Modified Disruptor Pistol",
+              "damage": 4,
+              "qualities": "Vicious 1"
+            },
+            {
+              "name": "Blade",
+              "damage": 3,
+              "qualities": "Deadly"
+            }
+          ],
+          "injuries": [],
+          "milestones": [],
+          "species": "",
+          "rank": "",
+          "career": "",
+          "role": "",
+          "equipment": "",
+          "special": "The boss of the Ashfall salvage crew. Greedy, loud, and smarter than he looks. Will bargain before he fights, and flee before he dies. Momentum spends: buy extra dice; GM should spend Threat to bring in Enforcers."
+        }
+      },
+      "notes": "Primary antagonist. Prefers leverage to violence; wants the Whisper Beacon intact to sell.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 4,
+      "type": "enemy",
+      "name": "Ashfall Enforcer",
+      "fields": {
+        "species": "Human",
+        "kind": "Notable NPC",
+        "role": "Syndicate Muscle",
+        "status": "Alive",
+        "sheet": {
+          "attributes": {
+            "control": 9,
+            "daring": 10,
+            "fitness": 10,
+            "insight": 8,
+            "presence": 8,
+            "reason": 8
+          },
+          "departments": {
+            "command": 1,
+            "conn": 2,
+            "engineering": 2,
+            "security": 4,
+            "medicine": 1,
+            "science": 1
+          },
+          "focuses": [
+            "Small Arms",
+            "Boarding Actions"
+          ],
+          "values": [],
+          "talents": [
+            "Tough"
+          ],
+          "stress_max": 11,
+          "stress_current": 11,
+          "determination": 1,
+          "protection": 1,
+          "weapons": [
+            {
+              "name": "Disruptor Rifle",
+              "damage": 4,
+              "qualities": "Accurate"
+            }
+          ],
+          "injuries": [],
+          "milestones": [],
+          "species": "",
+          "rank": "",
+          "career": "",
+          "role": "",
+          "equipment": "",
+          "special": "A reusable adversary. Field two or three in a boarding fight. Save this to your Adversary Library ('Save to Library' on the Adversaries screen) to reuse it."
+        }
+      },
+      "notes": "Rank-and-file Ashfall. Notable NPC -- durable but not clever.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 5,
+      "type": "enemy",
+      "name": "Signal-Maddened Crewman",
+      "fields": {
+        "species": "Human",
+        "kind": "Minor NPC",
+        "role": "Influenced Station Crew",
+        "status": "Alive",
+        "sheet": {
+          "attributes": {
+            "control": 8,
+            "daring": 9,
+            "fitness": 9,
+            "insight": 7,
+            "presence": 7,
+            "reason": 7
+          },
+          "departments": {
+            "command": 1,
+            "conn": 1,
+            "engineering": 2,
+            "security": 2,
+            "medicine": 1,
+            "science": 1
+          },
+          "focuses": [
+            "Improvised Weapons"
+          ],
+          "values": [],
+          "talents": [],
+          "stress_max": 9,
+          "stress_current": 9,
+          "determination": 1,
+          "protection": 0,
+          "weapons": [
+            {
+              "name": "Hyperspanner (improvised)",
+              "damage": 2,
+              "qualities": ""
+            }
+          ],
+          "injuries": [],
+          "milestones": [],
+          "species": "",
+          "rank": "",
+          "career": "",
+          "role": "",
+          "equipment": "",
+          "special": "A former Erevos crewmember driven to paranoid violence by the Beacon's signal. NOT truly hostile -- they can be stunned, talked down (a hard PRESENCE Task), or freed by silencing the signal. Killing them is a failure of the mission's spirit."
+        }
+      },
+      "notes": "Tragic, not evil. Use to raise the moral stakes of the signal.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 6,
+      "type": "npc",
+      "name": "Lt. Tomas Reyes",
+      "fields": {
+        "species": "Human",
+        "role": "Erevos Station Engineer (sole survivor)",
+        "status": "Alive",
+        "location": "Erevos Station"
+      },
+      "notes": "The only crewmember still lucid on Erevos, hiding in a shielded compartment. Traumatised and guilt-ridden -- he sealed the bulkheads on his own crewmates to stop the violence. Knows: the station intercepted a signal from deep in the Expanse; Dr. Aanel took a shuttle toward its source and never returned; the Ashfall have been shadowing the sector for a week. A key exposition NPC and a rescue objective.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 7,
+      "type": "npc",
+      "name": "Dr. Aanel",
+      "fields": {
+        "species": "Denobulan",
+        "role": "Erevos Chief Medical Officer (missing)",
+        "status": "Missing",
+        "location": "Vessel of Whispers"
+      },
+      "notes": "Erevos's CMO. Convinced the signal was a distress call, not a weapon, she took a shuttle to the derelict to help -- and is now aboard it, alive but changed: calm, certain, and speaking for the Beacon. Whether she is enthralled or enlightened is the adventure's central ambiguity. Finding her resolves the side quest 'The Missing Physician'.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 8,
+      "type": "npc",
+      "name": "Commodore Honce",
+      "fields": {
+        "species": "Vulcan",
+        "role": "Sector Command (mission briefing)",
+        "status": "Alive",
+        "location": ""
+      },
+      "notes": "Gives the mission over subspace: 'Erevos has gone silent. Investigate, render aid, and secure any recovered technology. The Ashfall Syndicate is active in the region -- do not let Federation assets fall into their hands.' Reappears to complicate the moral choice at the climax.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 9,
+      "type": "location",
+      "name": "The Kavari Expanse",
+      "fields": {
+        "location_type": "Wilderness",
+        "region": "Beta Quadrant frontier",
+        "danger_level": "High",
+        "population": "uninhabited"
+      },
+      "notes": "A sprawling dust nebula at the edge of Federation space. Sensor-scattering gas gives cover in ship conflicts (a scene Trait: 'Sensor-Blinding Dust' -- raises the Difficulty of Sensors Tasks by 1). Something ancient drifts at its heart.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 10,
+      "type": "location",
+      "name": "Erevos Station",
+      "fields": {
+        "location_type": "Other",
+        "region": "The Kavari Expanse",
+        "danger_level": "High",
+        "population": "48 crew (missing/deceased)"
+      },
+      "notes": "A Federation listening post monitoring the Expanse. Dark, cold, and silent when the players arrive: escape pods gone, bulkheads sealed from the inside, signs of a struggle. Restoring power (an ENGINEERING Extended Task) reveals the logs. Scene Trait while aboard: 'Failing Life Support'.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 11,
+      "type": "location",
+      "name": "Vessel of Whispers",
+      "fields": {
+        "location_type": "Ruin",
+        "region": "The Kavari Expanse (deep interior)",
+        "danger_level": "Deadly",
+        "population": "1 (Dr. Aanel) + the Beacon"
+      },
+      "notes": "The derelict alien vessel at the Expanse's heart -- older than the Federation, its builders long gone. It is not haunted; it is *broadcasting*. The Whisper Beacon in its core has been calling for help across ten thousand years, and minds that hear it too long begin to answer. The climax happens here. Environmental hazards, alien geometry, and a choice.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 12,
+      "type": "faction",
+      "name": "Ashfall Syndicate",
+      "fields": {
+        "faction_type": "Criminal",
+        "alignment": "Chaotic Neutral",
+        "power_level": "Moderate",
+        "leader": "Draex Kol",
+        "headquarters": "mobile raider fleet"
+      },
+      "notes": "A salvage-and-piracy outfit that strips derelicts and sells the pieces to the highest bidder. Not cartoon villains -- they are opportunists who happen to be racing the crew to a priceless prize. Can be bargained with, tricked, or turned against the Beacon itself.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 13,
+      "type": "faction",
+      "name": "Erevos Outpost Command",
+      "fields": {
+        "faction_type": "Military",
+        "alignment": "Lawful Good",
+        "power_level": "Minor",
+        "leader": "Commodore Honce",
+        "headquarters": "Erevos Station"
+      },
+      "notes": "The Starfleet command element responsible for the listening post. Their people are the missing crew the players are trying to save.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 14,
+      "type": "item",
+      "name": "The Whisper Beacon",
+      "fields": {
+        "item_type": "Artifact",
+        "rarity": "Legendary",
+        "attunement": "Unknown",
+        "owner": "the Vessel of Whispers",
+        "value": "priceless / hazardous"
+      },
+      "notes": "The MacGuffin. An alien distress beacon whose signal induces paranoia and, in prolonged exposure, eerie devotion. Options at the climax: DESTROY it (safe, but silences a genuine cry for help and a first-contact opportunity); SILENCE it (a hard ENGINEERING/SCIENCE Extended Task -- preserves it for study); or let the Ashfall TAKE it (a weaponisable disaster). No option is free of cost -- that is the point.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 15,
+      "type": "item",
+      "name": "Erevos Station Logs",
+      "fields": {
+        "item_type": "Other",
+        "rarity": "Common",
+        "attunement": "Not Required",
+        "owner": "USS Wayfarer (recovered)",
+        "value": "-"
+      },
+      "notes": "The clue chain. Decoding them (a REASON + Computers Task) reveals the signal's origin vector, Dr. Aanel's shuttle departure, and the moment the crew turned on each other.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 16,
+      "type": "quest",
+      "name": "Silence at Erevos",
+      "fields": {
+        "status": "Active",
+        "difficulty": "Hard",
+        "giver": "Commodore Honce",
+        "reward": "Commendation; first-contact credit; salvage authority",
+        "deadline": "Before the Ashfall breach the derelict's core",
+        "objectives": [
+          {
+            "text": "Reach Erevos Station and restore main power",
+            "done": false
+          },
+          {
+            "text": "Recover Lt. Reyes and any survivors",
+            "done": false
+          },
+          {
+            "text": "Decode the station's final logs",
+            "done": false
+          },
+          {
+            "text": "Locate the source of the signal in the Expanse",
+            "done": false
+          },
+          {
+            "text": "Resolve the Whisper Beacon before the Ashfall claim it",
+            "done": false
+          }
+        ]
+      },
+      "notes": "The spine of the adventure. Advances across all sessions. Suggested Mission Directives (set these on the Scene screen): 'Render aid to Federation personnel' and 'Recovered technology must not reach the Ashfall'. The second directive collides with the crew's conscience at the climax -- exactly where good Star Trek lives.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 17,
+      "type": "quest",
+      "name": "The Missing Physician",
+      "fields": {
+        "status": "Active",
+        "difficulty": "Medium",
+        "giver": "Lt. Tomas Reyes",
+        "reward": "A friendly (or transformed) expert on the Beacon",
+        "deadline": "-",
+        "objectives": [
+          {
+            "text": "Learn Dr. Aanel's fate from the station logs",
+            "done": false
+          },
+          {
+            "text": "Find Dr. Aanel aboard the Vessel of Whispers",
+            "done": false
+          },
+          {
+            "text": "Decide whether she can be brought home",
+            "done": false
+          }
+        ]
+      },
+      "notes": "Side quest. Humanises the horror and gives the players a face to save (or lose).",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 18,
+      "type": "quest",
+      "name": "Salvage Rights",
+      "fields": {
+        "status": "Active",
+        "difficulty": "Medium",
+        "giver": "Draex Kol",
+        "reward": "Avoids a fight / earns a wary ally",
+        "deadline": "-",
+        "objectives": [
+          {
+            "text": "Make contact with the Ashfall Syndicate",
+            "done": false
+          },
+          {
+            "text": "Negotiate, outwit, or outfight Draex Kol",
+            "done": false
+          }
+        ]
+      },
+      "notes": "Side quest / pressure valve. The Ashfall don't have to be an enemy -- a clever crew can turn them into a temporary partner against the Beacon.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 19,
+      "type": "encounter",
+      "name": "Boarding the Dark Station",
+      "fields": {
+        "status": "Planned",
+        "location": "Erevos Station"
+      },
+      "notes": "Session 1 set-piece. An away team explores the powerless station: eerie exploration, a first 'Signal-Maddened Crewman' ambush in the dark, and the discovery of Lt. Reyes. Low combat, high dread. Use a personal Conflict only if the crewman can't be talked or stunned down.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 20,
+      "type": "encounter",
+      "name": "Sabotage in the Jefferies Tubes",
+      "fields": {
+        "status": "Planned",
+        "location": "Erevos Station"
+      },
+      "notes": "Session 2 set-piece / personal Conflict. Prolonged exposure starts to affect the away team -- have a player whose Value fits ('I trust my crew', etc.) be TEMPTED. This is the perfect moment to CHALLENGE a Value (regain Determination) as paranoia creeps in. Optional light combat vs. maddened crew or a booby-trapped power conduit (an ENGINEERING Task under time pressure).",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 21,
+      "type": "encounter",
+      "name": "Standoff over the Expanse",
+      "fields": {
+        "status": "Planned",
+        "location": "The Kavari Expanse"
+      },
+      "notes": "Session 3 climax / SHIP Conflict. The Ashfall Raider Cinder intercepts the Wayfarer near the derelict. Open the Ship Conflict tracker, add the Wayfarer (Crew) and Cinder (Adversary). The Wayfarer is out-gunned -- reward using the 'Sensor-Blinding Dust' scene Trait, spending Power for clever maneuvers, and talking (a Social conflict is a valid win). Draex Kol wants the prize intact, so he won't shoot to kill unless cornered.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 22,
+      "type": "encounter",
+      "name": "The Beacon Chamber",
+      "fields": {
+        "status": "Planned",
+        "location": "Vessel of Whispers"
+      },
+      "notes": "Final session climax. The away team reaches the Beacon and finds Dr. Aanel serene beside it. The core is an Extended Task ('Silence the Whisper Beacon': Work ~12, Magnitude 3, Difficulty 2, Resistance 1 from the alien systems). Meanwhile the Ashfall may breach the hull (Threat spend), and Aanel argues for the Beacon's life. Resolve with Tasks, not just phasers. The ending the crew *chooses* is the reward.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 23,
+      "type": "session",
+      "name": "Session 1 - Distress at Erevos",
+      "fields": {
+        "session_number": "1",
+        "session_date": "",
+        "in_game_date": "Stardate 78412.3",
+        "location": "Erevos Station"
+      },
+      "notes": "HOOK: Commodore Honce diverts the Wayfarer to investigate Erevos Station, gone silent.\nBEATS: Approach through the Kavari Expanse (Conn Tasks in sensor-blinding dust). Dock with the dark station. Explore (encounter 'Boarding the Dark Station'): flickering lights, sealed bulkheads, no bodies. A Signal-Maddened Crewman lunges from the dark -- stun or talk down. Find Lt. Reyes barricaded in a shielded compartment; he tells them about the signal and Dr. Aanel.\nCLIFFHANGER: Sensors detect an unidentified ship holding at the Expanse's edge -- the Ashfall.\nGM NOTES: Keep combat scarce; sell dread. Set the Mission Directives on the Scene screen now.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 24,
+      "type": "session",
+      "name": "Session 2 - Ghosts in the Machine",
+      "fields": {
+        "session_number": "2",
+        "session_date": "",
+        "in_game_date": "Stardate 78414.0",
+        "location": "Erevos Station"
+      },
+      "notes": "GOAL: Understand what happened. Restore power (ENGINEERING Extended Task) and decode the logs (REASON + Computers). Learn the signal's origin vector and Dr. Aanel's departure.\nTWIST: Exposure starts working on the AWAY TEAM (encounter 'Sabotage in the Jefferies Tubes'). Lean into CHALLENGING Values for Determination as paranoia creeps in. A conduit is sabotaged (by a crewmate? by the signal?) -- an ENGINEERING Task under threat.\nESCALATION: The Ashfall hail the crew: Draex Kol offers 'partnership' (side quest 'Salvage Rights'). He knows where the derelict is. Do the players trust him?\nEND: A heading into the deep Expanse.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 25,
+      "type": "session",
+      "name": "Session 3 - The Ashfall Gambit",
+      "fields": {
+        "session_number": "3",
+        "session_date": "",
+        "in_game_date": "Stardate 78416.5",
+        "location": "The Kavari Expanse"
+      },
+      "notes": "GOAL: Reach the derelict first. Race and/or negotiate with the Ashfall.\nSET-PIECE: 'Standoff over the Expanse' -- a SHIP Conflict (or a tense social one). The Wayfarer is out-gunned; reward using the dust for cover, Power for maneuvers, and Sensors superiority. Draex wants the prize intact.\nOUTCOMES: However it goes, both ships end up at the Vessel of Whispers. If the crew befriended the Ashfall, Draex comes along (and may betray them later, or not). If they beat him, he limps off -- and returns at the worst moment.\nEND: The alien derelict fills the viewscreen, its signal now audible as a *whisper*.",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 26,
+      "type": "session",
+      "name": "Session 4 - The Vessel of Whispers",
+      "fields": {
+        "session_number": "4",
+        "session_date": "",
+        "in_game_date": "Stardate 78418.1",
+        "location": "Vessel of Whispers"
+      },
+      "notes": "CLIMAX (split into Session 5 if your table runs long). The away team boards the derelict: alien geometry, environmental hazards (SCIENCE/Fitness Tasks), and the Beacon Chamber. Dr. Aanel waits, serene, and speaks for the Beacon: it is not a weapon, it is grief -- a species' last cry for rescue, still calling long after they died.\nTHE CHOICE (encounter 'The Beacon Chamber'): DESTROY the Beacon (safe, but murders a memory and a first contact); SILENCE it for study (Extended Task 'Silence the Whisper Beacon', while the Ashfall breach the hull -- GM spends Threat); or let it be TAKEN (catastrophe).\nAFTERMATH: Tie off Reyes, Aanel, and the Ashfall based on the crew's choices. Mark 'Silence at Erevos' Complete and award a Milestone to each character (use the Milestones screen).",
+      "created_at": "2026-07-17T00:00:00",
+      "updated_at": "2026-07-17T00:00:00"
+    }
+  ],
+  "relationships": [
+    {
+      "id": 1,
+      "from_id": 3,
+      "to_id": 12,
+      "rel_type": "member of",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 2,
+      "from_id": 12,
+      "to_id": 3,
+      "rel_type": "leads",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 3,
+      "from_id": 4,
+      "to_id": 12,
+      "rel_type": "member of",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 4,
+      "from_id": 2,
+      "to_id": 12,
+      "rel_type": "belongs to",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 5,
+      "from_id": 8,
+      "to_id": 13,
+      "rel_type": "leads",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 6,
+      "from_id": 6,
+      "to_id": 10,
+      "rel_type": "located at",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 7,
+      "from_id": 7,
+      "to_id": 10,
+      "rel_type": "member of",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 8,
+      "from_id": 7,
+      "to_id": 11,
+      "rel_type": "located at",
+      "notes": "Took a shuttle to the source; now aboard.",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 9,
+      "from_id": 10,
+      "to_id": 9,
+      "rel_type": "located at",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 10,
+      "from_id": 11,
+      "to_id": 9,
+      "rel_type": "located at",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 11,
+      "from_id": 14,
+      "to_id": 11,
+      "rel_type": "located at",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 12,
+      "from_id": 5,
+      "to_id": 10,
+      "rel_type": "located at",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 13,
+      "from_id": 16,
+      "to_id": 14,
+      "rel_type": "involves",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 14,
+      "from_id": 16,
+      "to_id": 12,
+      "rel_type": "involves",
+      "notes": "Rival claimants racing the crew.",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 15,
+      "from_id": 8,
+      "to_id": 16,
+      "rel_type": "gave quest",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 16,
+      "from_id": 6,
+      "to_id": 17,
+      "rel_type": "gave quest",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 17,
+      "from_id": 3,
+      "to_id": 18,
+      "rel_type": "gave quest",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 18,
+      "from_id": 12,
+      "to_id": 13,
+      "rel_type": "opposes",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    },
+    {
+      "id": 19,
+      "from_id": 3,
+      "to_id": 14,
+      "rel_type": "seeks",
+      "notes": "",
+      "created_at": "2026-07-17T00:00:00"
+    }
+  ]
+}
