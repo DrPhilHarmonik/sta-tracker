@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
 
 
-ENTITY_TYPES = ["npc", "adventurer", "enemy", "location", "quest", "faction", "item", "session", "encounter"]
+ENTITY_TYPES = ["npc", "adventurer", "enemy", "starship", "location", "quest", "faction", "item", "session", "encounter"]
 
 ENTITY_LABELS = {
     "npc": "NPC",
     "adventurer": "Adventurer",
     "enemy": "Enemy",
+    "starship": "Starship",
     "location": "Location",
     "quest": "Quest",
     "faction": "Faction",
@@ -19,6 +20,7 @@ ENTITY_LABELS_PLURAL = {
     "npc": "NPCs",
     "adventurer": "Adventurers",
     "enemy": "Enemies",
+    "starship": "Starships",
     "location": "Locations",
     "quest": "Quests",
     "faction": "Factions",
@@ -31,6 +33,7 @@ ENTITY_ICONS = {
     "npc": "person",
     "adventurer": "shield",
     "enemy": "skull",
+    "starship": "rocket",
     "location": "map-pin",
     "quest": "scroll",
     "faction": "users",
@@ -76,6 +79,13 @@ ENTITY_SCHEMAS: dict[str, list[tuple]] = {
             "Lawful Evil", "Neutral Evil", "Chaotic Evil", "Unaligned",
         ]),
         ("status", "Status", "select", ["Alive", "Defeated", "Fled", "Unknown"]),
+    ],
+    "starship": [
+        ("spaceframe", "Spaceframe / Class", "text", None),
+        ("registry", "Registry", "text", None),
+        ("service_year", "Service Year", "text", None),
+        ("mission_profile", "Mission Profile", "text", None),
+        ("scale", "Scale", "number", None),
     ],
     "location": [
         ("location_type", "Type", "select", [

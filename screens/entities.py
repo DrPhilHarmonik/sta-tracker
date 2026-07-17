@@ -10,6 +10,7 @@ from pathlib import Path
 import db
 import export as exp
 import sheet as shm
+import starship as ship_mod
 import dice
 import combat as cbt
 import effects as fx
@@ -19,6 +20,7 @@ from models import ENTITY_TYPES, ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCH
 from screens.common import DismissableScreen, PALETTE, entity_ref_options, tint_border
 from screens.modals import ConfirmScreen
 from screens.sheet import CharacterSheetScreen
+from screens.starship import StarshipSheetScreen
 from screens.roll import RollPickerScreen
 from screens.combat import CombatTrackerScreen
 from screens.effects import EffectsScreen
@@ -246,6 +248,28 @@ class AddObjectiveModal(ModalScreen):
 # Entity Detail
 # ---------------------------------------------------------------------------
 
+def _format_starship_lines(raw_sheet: dict) -> list[str]:
+    sheet = ship_mod.normalize_sheet(raw_sheet)
+    lines = ["", "[bold]Starship Sheet:[/]"]
+    lines.append("  " + "  ".join(f"{ship_mod.SYSTEM_LABELS[s]} {sheet['systems'][s]}" for s in ship_mod.SYSTEMS))
+    lines.append("  " + "  ".join(f"{ship_mod.DEPARTMENT_LABELS[d]} {sheet['departments'][d]}" for d in ship_mod.DEPARTMENTS))
+    lines.append(
+        f"  Scale {sheet['scale']}   Resistance {ship_mod.resistance(sheet)}   "
+        f"Shields {sheet['shields_current']}/{sheet['shields_max']}   Crew Support {sheet['crew_support']}"
+    )
+    if sheet["talents"]:
+        lines.append(f"  Talents: {', '.join(sheet['talents'])}")
+    if sheet["traits"]:
+        lines.append(f"  Traits: {', '.join(sheet['traits'])}")
+    if sheet["weapons"]:
+        lines.append("  Weapons:")
+        for w in sheet["weapons"]:
+            dice_count = ship_mod.weapon_dice(sheet, w)
+            qual = f" [{w['qualities']}]" if w["qualities"] else ""
+            lines.append(f"    {w['name']} — {dice_count}[CD]{qual}")
+    return lines
+
+
 def _format_sheet_lines(entity_type: str, raw_sheet: dict, raw_effects: list | None = None) -> list[str]:
     base_sheet = shm.normalize_sheet(raw_sheet)
     active_effects = fx.normalize_effects(raw_effects)
@@ -343,7 +367,9 @@ class EntityDetailScreen(DismissableScreen):
         entity = db.get_entity(self.entity_id)
         if not entity:
             return True
-        if action in ("open_sheet", "open_roll", "open_effects"):
+        if action == "open_sheet":
+            return entity["type"] in shm.SHEET_ENTITY_TYPES or entity["type"] == "starship"
+        if action in ("open_roll", "open_effects"):
             return entity["type"] in shm.SHEET_ENTITY_TYPES
         if action in ("make_hostile", "make_allied"):
             return entity["type"] == "npc"
@@ -386,6 +412,8 @@ class EntityDetailScreen(DismissableScreen):
                 Button("Roll Dice", id="btn-roll", variant="success"),
                 Button("Effects", id="btn-effects", variant="default"),
             )
+        if entity["type"] == "starship":
+            await actions.mount(Button("Ship Sheet", id="btn-sheet", variant="warning"))
         if entity["type"] == "npc":
             await actions.mount(
                 Button("Make Hostile", id="btn-hostile", variant="error"),
@@ -420,7 +448,9 @@ class EntityDetailScreen(DismissableScreen):
             if val:
                 lines.append(f"[bold]{label}:[/] {val}")
 
-        if entity["type"] in shm.SHEET_ENTITY_TYPES:
+        if entity["type"] == "starship":
+            lines.extend(_format_starship_lines(entity["fields"].get("sheet", {})))
+        elif entity["type"] in shm.SHEET_ENTITY_TYPES:
             lines.extend(_format_sheet_lines(entity["type"], entity["fields"].get("sheet", {}), entity["fields"].get("active_effects", [])))
 
         if rels:
@@ -496,7 +526,11 @@ class EntityDetailScreen(DismissableScreen):
 
     def action_open_sheet(self):
         entity = db.get_entity(self.entity_id)
-        if entity and entity["type"] in shm.SHEET_ENTITY_TYPES:
+        if not entity:
+            return
+        if entity["type"] == "starship":
+            self.app.push_screen(StarshipSheetScreen(self.entity_id), callback=lambda _: self._render_detail())
+        elif entity["type"] in shm.SHEET_ENTITY_TYPES:
             self.app.push_screen(CharacterSheetScreen(self.entity_id), callback=lambda _: self._render_detail())
 
     def action_open_roll(self):

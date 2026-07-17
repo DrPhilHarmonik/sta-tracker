@@ -267,6 +267,23 @@ Power, Scale, Breaches) and a starship sheet screen. Extend the conflict tracker
 with a ship-combat mode (ranges/zones, power spend, breaches → system damage).
 Ships participate in the same entity/relationship/export machinery as characters.
 
+**Status: Done.** `starship` is registered as a full entity type (label, plural,
+icon, palette, flat schema: spaceframe/registry/service year/mission profile/
+scale). New `starship.py` is the second sheet shape: six ship Systems (Comms,
+Computers, Engines, Sensors, Structure, Weapons) plus the shared six
+Departments, Scale-driven Resistance, a Shields track (Structure + Security,
+mirroring Stress), Crew Support, Talents, Traits and weapons (damage dice =
+rating + Scale), with `shields_base`/`resistance`/`target_number`/`weapon_dice`
+helpers. The DB's shape-aware dispatch gains a `systems`-first branch (checked
+before the character `attributes`/`departments` branch, since a ship sheet has
+Departments too). New `StarshipSheetScreen` (Systems / Profile / Talents &
+Weapons / Ship Task Roll tabs) parallels the character sheet; the entity detail
+screen routes "Ship Sheet" to it and renders a starship stat summary. Ships flow
+through the existing entity/relationship/export/backup machinery unchanged.
+Ship-combat *mode* in the conflict tracker is deferred (the sheet's own Task/CD
+rolls cover ship actions for now). `test_starship.py` + `test_ui_starship.py`
+added. 347 tests passing.
+
 ### Phase 10 — Conditions, Traits & export polish
 
 Port `conditions.py`/`effects.py` to STA Conditions and scene/character **Traits**

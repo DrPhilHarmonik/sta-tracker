@@ -7,6 +7,7 @@ from datetime import datetime
 import models
 import sheet as sheet_mod
 import sta_sheet as sta_sheet_mod
+import starship as starship_mod
 import momentum as momentum_mod
 import effects as effects_mod
 import combat as combat_mod
@@ -130,12 +131,14 @@ def objective_progress(fields: dict) -> tuple[int, int]:
 
 
 def _normalize_sheet_any(raw: dict) -> dict:
-    """Normalize a character sheet by shape. During the STA migration both
-    shapes coexist in the DB: an STA sheet carries ``attributes``/
-    ``departments``; the legacy 5e sheet carries ``abilities``. New STA screens
-    write the former; un-migrated 5e screens still write the latter. When the
-    last 5e reader is gone (roadmap Phase 10) the 5e branch and ``sheet.py`` go
-    with it."""
+    """Normalize a sheet by shape. Three shapes coexist during the STA
+    migration: a starship sheet carries ``systems``; an STA character sheet
+    carries ``attributes``/``departments``; the legacy 5e sheet carries
+    ``abilities``. The ``systems`` check comes first because a starship sheet
+    also has ``departments``. When the last 5e reader is gone (roadmap Phase 10)
+    the 5e branch and ``sheet.py`` go with it."""
+    if "systems" in raw:
+        return starship_mod.normalize_sheet(raw)
     if "attributes" in raw or "departments" in raw:
         return sta_sheet_mod.normalize_sheet(raw)
     return sheet_mod.normalize_sheet(raw)

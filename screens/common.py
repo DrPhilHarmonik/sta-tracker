@@ -23,6 +23,7 @@ PALETTE = {
     "npc":        "#c792ea",
     "adventurer": "#89ddff",
     "enemy":      "#ff5370",
+    "starship":   "#80cbc4",
     "location":   "#c3e88d",
     "quest":      "#ffcb6b",
     "faction":    "#f78c6c",
