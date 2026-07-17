@@ -8,6 +8,8 @@ import db
 import export as exp
 import sta_sheet as sta
 import dice
+import talents as talents_lib
+import focuses as focuses_lib
 
 from screens.common import tint_border
 
@@ -74,6 +76,8 @@ class CharacterSheetScreen(Screen):
         self._refresh_talents_list()
         self._refresh_weapons_list()
         self._refresh_injuries_list()
+        self._refresh_focus_library()
+        self._refresh_talent_library()
 
     # -- tab builders --------------------------------------------------
 
@@ -138,6 +142,11 @@ class CharacterSheetScreen(Screen):
                 Button("Remove Selected", id="btn-remove-focus"),
                 id="focus-actions",
             ),
+            Horizontal(
+                Select([("(from library)", "")], value="", id="focus-library", allow_blank=False),
+                Button("Add from Library", id="btn-focus-from-library"),
+                id="focus-library-actions",
+            ),
             ListView(id="list-focuses"),
             Static("[bold]Values[/]  (narrative statements; may be invoked or challenged)"),
             Horizontal(
@@ -158,6 +167,11 @@ class CharacterSheetScreen(Screen):
                 Button("+ Add", id="btn-add-talent"),
                 Button("Remove Selected", id="btn-remove-talent"),
                 id="talent-actions",
+            ),
+            Horizontal(
+                Select([("(from library)", "")], value="", id="talent-library", allow_blank=False),
+                Button("Add from Library", id="btn-talent-from-library"),
+                id="talent-library-actions",
             ),
             ListView(id="list-talents"),
             Static("[bold]Weapons[/]  (damage dice = rating + Security)"),
@@ -256,6 +270,39 @@ class CharacterSheetScreen(Screen):
             return
         current = self._to_int("sta-determination", 0)
         readout.update(f"[bold]Determination[/]: {current}/{sta.DETERMINATION_MAX}")
+
+    # -- reference libraries (Talents & Focuses) -----------------------
+
+    def _refresh_focus_library(self):
+        select = self.query_one("#focus-library", Select)
+        select.set_options([("(from library)", "")] + [(f, f) for f in focuses_lib.all_focuses()])
+        select.value = ""
+
+    def _refresh_talent_library(self):
+        select = self.query_one("#talent-library", Select)
+        select.set_options([("(from library)", "")] + [(t, t) for t in talents_lib.names()])
+        select.value = ""
+
+    def _add_focus_and_remember(self):
+        name = self.query_one("#focus-input", Input).value.strip()
+        self._add_simple("focus-input", self.pending_focuses, self._refresh_focuses_list)
+        if name:
+            focuses_lib.add(name)
+            self._refresh_focus_library()
+
+    def _add_talent_and_remember(self):
+        name = self.query_one("#talent-input", Input).value.strip()
+        self._add_simple("talent-input", self.pending_talents, self._refresh_talents_list)
+        if name:
+            talents_lib.save(name)
+            self._refresh_talent_library()
+
+    def _add_from_library(self, select_id: str, target: list, refresh):
+        sel = self.query_one(f"#{select_id}", Select)
+        name = "" if sel.value is Select.NULL else str(sel.value)
+        if name and name not in target:
+            target.append(name)
+            refresh()
 
     def _refresh_talents_list(self):
         self._refresh_simple_list("list-talents", self.pending_talents)
@@ -452,7 +499,9 @@ class CharacterSheetScreen(Screen):
         elif bid == "btn-roll-cd":
             self._do_roll_cd()
         elif bid == "btn-add-focus":
-            self._add_simple("focus-input", self.pending_focuses, self._refresh_focuses_list)
+            self._add_focus_and_remember()
+        elif bid == "btn-focus-from-library":
+            self._add_from_library("focus-library", self.pending_focuses, self._refresh_focuses_list)
         elif bid == "btn-remove-focus":
             self._remove_selected("list-focuses", self.pending_focuses, self._refresh_focuses_list)
         elif bid == "btn-add-value":
@@ -460,7 +509,9 @@ class CharacterSheetScreen(Screen):
         elif bid == "btn-remove-value":
             self._remove_selected("list-values", self.pending_values, self._refresh_values_list)
         elif bid == "btn-add-talent":
-            self._add_simple("talent-input", self.pending_talents, self._refresh_talents_list)
+            self._add_talent_and_remember()
+        elif bid == "btn-talent-from-library":
+            self._add_from_library("talent-library", self.pending_talents, self._refresh_talents_list)
         elif bid == "btn-remove-talent":
             self._remove_selected("list-talents", self.pending_talents, self._refresh_talents_list)
         elif bid == "btn-add-weapon":

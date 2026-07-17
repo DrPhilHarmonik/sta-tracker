@@ -7,6 +7,8 @@ from textual import on
 import db
 import sta_sheet as sta
 import species as species_mod
+import talents as talents_lib
+import focuses as focuses_lib
 from models import ENTITY_LABELS
 
 from screens.common import DismissableScreen, entity_ref_options, schema_choices, tint_border
@@ -138,6 +140,8 @@ class WizardScreen(DismissableScreen):
         elif bid == "btn-wiz-reset-depts":
             self._reset_inputs(DEFAULT_DEPARTMENT_SPREAD, "wiz-dept")
         elif bid == "btn-wiz-add-focus":
+            # Remember novel Focuses in the reference library as they're typed.
+            focuses_lib.add(self.query_one("#wiz-focus-input", Input).value.strip())
             self._add_simple("wiz-focus-input", self.pending_focuses, "wiz-list-focuses")
         elif bid == "btn-wiz-remove-focus":
             self._remove_simple(self.pending_focuses, "wiz-list-focuses")
@@ -146,6 +150,7 @@ class WizardScreen(DismissableScreen):
         elif bid == "btn-wiz-remove-value":
             self._remove_simple(self.pending_values, "wiz-list-values")
         elif bid == "btn-wiz-add-talent":
+            talents_lib.save(self.query_one("#wiz-talent-input", Input).value.strip())
             self._add_simple("wiz-talent-input", self.pending_talents, "wiz-list-talents")
         elif bid == "btn-wiz-remove-talent":
             self._remove_simple(self.pending_talents, "wiz-list-talents")

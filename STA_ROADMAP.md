@@ -77,6 +77,16 @@ because every Talent and Focus is free text.
   character + starship sheets. A small reference screen to manage them (reuse the
   `MonsterRefScreen` list/detail layout).
 
+**Status: Done.** New `library.py` factors out the JSON-next-to-the-DB
+persistence (isolated per config dir / per test `tmp_path`); `talents.py`
+(`{name, description}`, upsert-by-name) and `focuses.py` (deduped strings) layer
+on top, both shipping empty. The libraries **self-populate**: adding a Focus or
+Talent on the character sheet, the starship sheet, or in the wizard remembers it
+(blank/duplicate adds are no-ops), so the picker gets richer as you play. The
+character and starship sheets gained an "Add from Library" Select next to the
+free-text add. New `ReferenceScreen` (Talents / Focuses tabs, `T` on the
+dashboard) browses, describes, and prunes them. 294 tests passing.
+
 ## Phase 14 — Starship conflict mode  *(large — the deferred feature)*
 
 **Why:** The headline STA subsystem we punted on in Phase 9. Ships exist as a

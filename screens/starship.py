@@ -7,6 +7,7 @@ from textual.containers import Container, Horizontal, Vertical, ScrollableContai
 import db
 import starship as ship
 import dice
+import talents as talents_lib
 
 from screens.common import tint_border
 
@@ -59,6 +60,7 @@ class StarshipSheetScreen(Screen):
         self._refresh_talents_list()
         self._refresh_traits_list()
         self._refresh_weapons_list()
+        self._refresh_talent_library()
 
     # -- tab builders --------------------------------------------------
 
@@ -122,6 +124,11 @@ class StarshipSheetScreen(Screen):
                 Button("Remove Selected", id="btn-ship-remove-talent"),
                 id="ship-talent-actions",
             ),
+            Horizontal(
+                Select([("(from library)", "")], value="", id="ship-talent-library", allow_blank=False),
+                Button("Add from Library", id="btn-ship-talent-from-library"),
+                id="ship-talent-library-actions",
+            ),
             ListView(id="ship-list-talents"),
             Static("[bold]Traits[/]  (e.g. Federation Starship, Cloaking Device)"),
             Horizontal(
@@ -179,6 +186,25 @@ class StarshipSheetScreen(Screen):
 
     def _refresh_talents_list(self):
         self._refresh_simple_list("ship-list-talents", self.pending_talents)
+
+    def _refresh_talent_library(self):
+        select = self.query_one("#ship-talent-library", Select)
+        select.set_options([("(from library)", "")] + [(t, t) for t in talents_lib.names()])
+        select.value = ""
+
+    def _add_talent_and_remember(self):
+        name = self.query_one("#ship-talent-input", Input).value.strip()
+        self._add_simple("ship-talent-input", self.pending_talents, self._refresh_talents_list)
+        if name:
+            talents_lib.save(name)
+            self._refresh_talent_library()
+
+    def _add_talent_from_library(self):
+        sel = self.query_one("#ship-talent-library", Select)
+        name = "" if sel.value is Select.NULL else str(sel.value)
+        if name and name not in self.pending_talents:
+            self.pending_talents.append(name)
+            self._refresh_talents_list()
 
     def _refresh_traits_list(self):
         self._refresh_simple_list("ship-list-traits", self.pending_traits)
@@ -313,7 +339,9 @@ class StarshipSheetScreen(Screen):
         elif bid == "btn-ship-roll-cd":
             self._do_roll_cd()
         elif bid == "btn-ship-add-talent":
-            self._add_simple("ship-talent-input", self.pending_talents, self._refresh_talents_list)
+            self._add_talent_and_remember()
+        elif bid == "btn-ship-talent-from-library":
+            self._add_talent_from_library()
         elif bid == "btn-ship-remove-talent":
             self._remove_selected("ship-list-talents", self.pending_talents, self._refresh_talents_list)
         elif bid == "btn-ship-add-trait":

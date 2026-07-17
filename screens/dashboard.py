@@ -18,6 +18,7 @@ from screens.backup import ExportScreen, BackupScreen
 from screens.campaigns import CampaignSwitcherScreen
 from screens.party_overview import PartyOverviewScreen
 from screens.monster_ref import MonsterRefScreen
+from screens.reference import ReferenceScreen
 from screens.relationships import RelationshipBrowserScreen
 from screens.pools import PoolBar
 from screens.common import DismissableScreen, PALETTE
@@ -39,6 +40,7 @@ class Dashboard(Screen):
         Binding("ctrl+w", "campaigns", "Campaigns"),
         Binding("p", "party_overview", "Party Overview"),
         Binding("m", "monster_ref", "Adversaries"),
+        Binding("T", "reference", "Talents/Focuses"),
         Binding("R", "relationship_browser", "Relationships"),
     ]
 
@@ -52,6 +54,7 @@ class Dashboard(Screen):
                 Button("Switch Campaign", id="btn-campaigns", variant="default"),
                 Button("Party Overview", id="btn-party", variant="primary"),
                 Button("Adversaries", id="btn-monster", variant="default"),
+                Button("Talents/Focuses", id="btn-reference", variant="default"),
                 Button("Export MD", id="btn-export", variant="success"),
                 Button("Search All", id="btn-search", variant="primary"),
                 Button("Backup / Restore", id="btn-backup", variant="default"),
@@ -109,6 +112,8 @@ class Dashboard(Screen):
             self.action_party_overview()
         elif btn_id == "btn-monster":
             self.action_monster_ref()
+        elif btn_id == "btn-reference":
+            self.action_reference()
         elif btn_id == "btn-backup":
             self.action_backup()
 
@@ -126,6 +131,9 @@ class Dashboard(Screen):
 
     def action_monster_ref(self):
         self.app.push_screen(MonsterRefScreen())
+
+    def action_reference(self):
+        self.app.push_screen(ReferenceScreen())
 
     def action_relationship_browser(self):
         self.app.push_screen(RelationshipBrowserScreen())
