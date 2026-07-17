@@ -124,3 +124,32 @@ def test_challenge_uses_seeded_rng_reproducibly():
     b = dice.roll_challenge(5, rng=random.Random(42))
     assert a.rolls == b.rolls
     assert a.total == b.total
+
+
+# -- Determination (invoking a Value) -----------------------------------------
+
+def test_determination_adds_auto_critical_die():
+    # Both rolled dice miss TN 12; the Determination die is set to 1 (a crit).
+    rng = SeqRandom([14, 14])
+    result = dice.roll_task(attribute=9, department=3, difficulty=1, determination=1, rng=rng)
+    assert result.successes == 2          # the auto-1 die scores a critical
+    assert result.rolls[0] == 1           # bonus die prepended
+    assert result.succeeded is True
+    assert "Determination" in result.detail
+
+
+def test_determination_dice_never_generate_complications():
+    # Both rolled dice are natural 20s (complications); the two auto dice aren't.
+    rng = SeqRandom([20, 20])
+    result = dice.roll_task(attribute=8, department=1, difficulty=1, determination=2, rng=rng)
+    assert result.complications == 2      # only the rolled 20s
+    assert result.successes == 4          # two auto-1 criticals
+
+
+def test_zero_determination_matches_a_plain_roll():
+    rng_a = SeqRandom([5, 14])
+    rng_b = SeqRandom([5, 14])
+    plain = dice.roll_task(attribute=9, department=3, difficulty=1, rng=rng_a)
+    zero = dice.roll_task(attribute=9, department=3, difficulty=1, determination=0, rng=rng_b)
+    assert plain.rolls == zero.rolls
+    assert plain.successes == zero.successes

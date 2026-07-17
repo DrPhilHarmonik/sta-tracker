@@ -143,3 +143,10 @@ def test_roundtrips_through_dice_target_number():
     assert result.target_number == tn == 13
     assert result.successes == 1
     assert result.complications == 1
+
+
+def test_adjust_determination_clamps_to_bounds():
+    assert sta.adjust_determination(1, -1) == 0
+    assert sta.adjust_determination(0, -1) == 0      # never below 0
+    assert sta.adjust_determination(2, 1) == 3
+    assert sta.adjust_determination(3, 1) == sta.DETERMINATION_MAX == 3  # capped

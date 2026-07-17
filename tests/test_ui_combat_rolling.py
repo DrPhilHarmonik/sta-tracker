@@ -145,3 +145,50 @@ def test_next_turn_switches_actor_to_the_other_side(monkeypatch, tmp_path):
             assert cs.query_one("#sel-weapon").value == "w:0"  # Klingon's Bat'leth
 
     run(scenario)
+
+
+def test_invoking_a_value_spends_determination_from_the_sheet(monkeypatch, tmp_path):
+    pc_id, enemy_id = _make_combat(monkeypatch, tmp_path)
+    # Give the crew member 2 Determination on the sheet.
+    db.update_entity(pc_id, "Brynn Ashforge", {"sheet": _sta_sheet(determination=2)}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open_combat_tracker(pilot, app)
+            await _add_both(cs, pilot, pc_id, enemy_id)
+            cs.query_one("#btn-start-encounter").press()
+            await pilot.pause()
+            assert cs.query_one("#sel-attack-attacker").value == str(pc_id)
+
+            cs.query_one("#task-invoke").value = True
+            cs.query_one("#btn-roll-task").press()
+            await pilot.pause()
+
+            # Determination was written back to the acting character's sheet.
+            assert db.get_entity(pc_id)["fields"]["sheet"]["determination"] == 1
+            assert cs.query_one("#task-invoke").value is False
+
+
+    run(scenario)
+
+
+def test_challenge_value_button_regains_determination_in_combat(monkeypatch, tmp_path):
+    pc_id, enemy_id = _make_combat(monkeypatch, tmp_path)
+    db.update_entity(pc_id, "Brynn Ashforge", {"sheet": _sta_sheet(determination=1)}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open_combat_tracker(pilot, app)
+            await _add_both(cs, pilot, pc_id, enemy_id)
+            cs.query_one("#btn-start-encounter").press()
+            await pilot.pause()
+
+            cs.query_one("#btn-combat-challenge-value").press()
+            await pilot.pause()
+            assert db.get_entity(pc_id)["fields"]["sheet"]["determination"] == 2
+
+    run(scenario)

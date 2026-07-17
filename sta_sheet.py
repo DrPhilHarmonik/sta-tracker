@@ -125,6 +125,15 @@ def normalize_sheet(raw: dict | None) -> dict:
     return sheet
 
 
+def adjust_determination(current: int, delta: int) -> int:
+    """Change a character's Determination, clamped to 0..DETERMINATION_MAX.
+
+    Spend (a negative delta) by invoking a Value; regain (a positive delta) by
+    having a Value challenged. Pure math -- callers persist the result on the
+    sheet."""
+    return _clamp(int(current) + int(delta), 0, DETERMINATION_MAX, current)
+
+
 def base_stress(sheet: dict) -> int:
     """A character's base Stress track: Fitness + Security.
 

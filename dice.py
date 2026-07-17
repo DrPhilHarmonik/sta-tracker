@@ -122,21 +122,29 @@ def roll_task(
     focus: bool = False,
     dice: int = 2,
     complication_range: int = 1,
+    determination: int = 0,
     rng=random,
 ) -> TaskResult:
     """Resolve a 2d20 task.
 
-    ``dice`` is the total d20 pool (2 base, clamped to ``MAX_TASK_DICE``).
+    ``dice`` is the rolled d20 pool (2 base, clamped to ``MAX_TASK_DICE``).
     ``complication_range`` is how many high faces trigger a Complication
     (1 -> only a 20; 2 -> 19-20; ...).
+    ``determination`` is the number of Determination points spent (by invoking a
+    Value): each adds a bonus d20 on top of the pool that is not rolled but comes
+    up as a natural 1 -- a critical, worth two successes. These bonus dice never
+    generate Complications.
     """
     dice = max(1, min(int(dice), MAX_TASK_DICE))
+    determination = max(0, int(determination))
     target_number = int(attribute) + int(department)
     complication_floor = 21 - max(1, int(complication_range))
 
-    rolls = [rng.randint(1, 20) for _ in range(dice)]
+    rolled = [rng.randint(1, 20) for _ in range(dice)]
+    # Determination-bought dice are set to 1 (an automatic critical).
+    rolls = [1] * determination + rolled
     successes = sum(_die_successes(v, target_number, department, focus) for v in rolls)
-    complications = sum(1 for v in rolls if v >= complication_floor)
+    complications = sum(1 for v in rolled if v >= complication_floor)
 
     succeeded = successes >= difficulty
     momentum = successes - difficulty if succeeded else 0
@@ -146,6 +154,8 @@ def roll_task(
         f"TN {target_number} | {rolls} -> {successes} success"
         f"{'es' if successes != 1 else ''} vs Diff {difficulty}: {outcome}"
     )
+    if determination:
+        detail += f" (spent {determination} Determination)"
     if momentum:
         detail += f" (+{momentum} Momentum)"
     if complications:

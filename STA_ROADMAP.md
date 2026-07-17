@@ -24,7 +24,7 @@ standalone Star Trek Adventures 2e tracker.
 
 ---
 
-## Phase 11 — Close the metacurrency loop: Determination & Values  *(next)*
+## Phase 11 — Close the metacurrency loop: Determination & Values
 
 **Why:** Momentum and Threat are fully wired (Phase 5); Determination is still
 an inert integer on the sheet, and Values are a plain list. Determination is the
@@ -41,6 +41,16 @@ most conspicuous dead stat in the tool.
 - Log Value invocations/challenges to the conflict log.
 
 **Non-goals:** no new entity type or schema; this is UI + engine wiring.
+
+**Status: Done.** `dice.roll_task` gained a `determination` parameter: each
+point prepends a bonus d20 set to a natural 1 (an automatic critical, two
+successes) that never generates a Complication. `sta_sheet.adjust_determination`
+is the pure 0–3 clamp helper. The character sheet's Task Roll tab has a Value
+picker, an "Invoke (spend 1 Det)" switch that decrements Determination and adds
+the bonus die on the roll, a "Challenge Value (+1 Det)" button, and a live
+Determination readout. The conflict tracker mirrors this for the acting
+character (writing Determination back to their sheet and logging both invoke and
+challenge to the conflict log). 278 tests passing.
 
 ## Phase 12 — Milestones & advancement
 

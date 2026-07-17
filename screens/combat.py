@@ -121,9 +121,14 @@ class CombatTrackerScreen(DismissableScreen):
             Horizontal(
                 Label("Difficulty"), Input(value="2", id="task-difficulty", classes="stat-input"),
                 Switch(id="task-focus"), Label("Focus applies"),
+                Switch(id="task-invoke"), Label("Invoke Value (spend 1 Det)"),
                 id="task-params",
             ),
-            Button("Roll Task (2d20)", id="btn-roll-task", variant="primary"),
+            Horizontal(
+                Button("Roll Task (2d20)", id="btn-roll-task", variant="primary"),
+                Button("Challenge Value (+1 Det)", id="btn-combat-challenge-value"),
+                id="task-actions",
+            ),
             Static("Pick a character, set the Task, then roll.", id="task-result"),
             Static("[bold]Weapon Damage[/]"),
             Select([], id="sel-weapon", prompt="Choose weapon..."),
@@ -313,14 +318,27 @@ class CombatTrackerScreen(DismissableScreen):
         except ValueError:
             difficulty = 2
         focus = self.query_one("#task-focus", Switch).value
+
+        # Invoking a Value spends 1 Determination from the acting character's
+        # sheet for an automatic bonus success.
+        invoke = self.query_one("#task-invoke", Switch).value
+        spend = 1 if invoke and sheet["determination"] >= 1 else 0
+
         result = dice.roll_task(
             attribute=sheet["attributes"][attr],
             department=sheet["departments"][dept],
             difficulty=difficulty,
             focus=focus,
+            determination=spend,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
         detail = f"{entity['name']}: {result.detail}"
+        if spend:
+            self._set_determination(entity, sta.adjust_determination(sheet["determination"], -1))
+            self.query_one("#task-invoke", Switch).value = False
+            self._log(f"{entity['name']} invoked a Value (spent 1 Determination)")
+        elif invoke:
+            detail += "  --  no Determination to spend"
         if result.momentum > 0:
             pools = db.adjust_momentum(result.momentum)
             detail += f"  --  +{result.momentum} Momentum (pool {pools['momentum']})"
@@ -331,6 +349,28 @@ class CombatTrackerScreen(DismissableScreen):
             self._refresh_pool_bar()
         self.query_one("#task-result", Static).update(f"[{colour}]{detail}[/]")
         self._log(f"{entity['name']} rolled a Task: {result.successes} success(es) vs Difficulty {difficulty}")
+        self._persist()
+
+    def _set_determination(self, entity: dict, value: int):
+        """Persist a new Determination value onto an acting character's sheet."""
+        sheet = self._sheet_for(entity)
+        sheet["determination"] = value
+        fields = dict(entity["fields"])
+        fields["sheet"] = sheet
+        db.update_entity(entity["id"], entity["name"], fields, entity["notes"])
+
+    def _challenge_value(self):
+        entity = self._acting_entity()
+        if not entity:
+            self.query_one("#task-result", Static).update("[red]Pick an acting character first.[/]")
+            return
+        sheet = self._sheet_for(entity)
+        new_det = sta.adjust_determination(sheet["determination"], 1)
+        self._set_determination(entity, new_det)
+        self._log(f"{entity['name']} challenged a Value (regained Determination -> {new_det})")
+        self.query_one("#task-result", Static).update(
+            f"{entity['name']} challenged a Value -- Determination now {new_det}/{sta.DETERMINATION_MAX}"
+        )
         self._persist()
 
     def _roll_damage(self):
@@ -506,6 +546,8 @@ class CombatTrackerScreen(DismissableScreen):
             self._end_encounter()
         elif bid == "btn-roll-task":
             self._roll_task()
+        elif bid == "btn-combat-challenge-value":
+            self._challenge_value()
         elif bid == "btn-roll-damage":
             self._roll_damage()
         elif bid == "btn-damage":

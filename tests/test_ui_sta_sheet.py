@@ -125,3 +125,63 @@ def test_adding_focus_updates_task_focus_options_and_persists(monkeypatch, tmp_p
         assert sheet["values"] == ["The needs of the many"]
 
     run(scenario)
+
+
+def test_invoking_a_value_spends_determination_on_the_roll(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            screen.query_one("#sta-determination").value = "2"
+            screen.query_one("#task-invoke").value = True
+            screen.query_one("#btn-roll-task").press()
+            await pilot.pause()
+            # Determination was spent (2 -> 1) and the switch reset.
+            assert screen.query_one("#sta-determination").value == "1"
+            assert screen.query_one("#task-invoke").value is False
+            assert "1/3" in str(screen.query_one("#determination-readout").content)
+            result = str(screen.query_one("#task-result").content)
+            assert "success" in result.lower()
+
+    run(scenario)
+
+
+def test_invoking_with_no_determination_is_a_no_op(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            screen.query_one("#sta-determination").value = "0"
+            screen.query_one("#task-invoke").value = True
+            screen.query_one("#btn-roll-task").press()
+            await pilot.pause()
+            assert screen.query_one("#sta-determination").value == "0"
+            assert "no Determination" in str(screen.query_one("#task-result").content)
+
+    run(scenario)
+
+
+def test_challenge_value_button_regains_determination(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            screen.query_one("#sta-determination").value = "1"
+            screen.query_one("#btn-challenge-value").press()
+            await pilot.pause()
+            assert screen.query_one("#sta-determination").value == "2"
+            assert "2/3" in str(screen.query_one("#determination-readout").content)
+
+    run(scenario)

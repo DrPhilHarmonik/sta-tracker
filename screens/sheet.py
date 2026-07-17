@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import Header, Footer, Label, Button, Input, Select, Static, ListView, ListItem, TabbedContent, TabPane
+from textual.widgets import Header, Footer, Label, Button, Input, Select, Static, ListView, ListItem, TabbedContent, TabPane, Switch
 from textual.screen import Screen
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 
@@ -200,6 +200,14 @@ class CharacterSheetScreen(Screen):
                 Vertical(Label("Dice"), Select(BONUS_DICE_OPTIONS, value="0", id="task-bonus-dice", allow_blank=False)),
                 id="task-row2",
             ),
+            Static("[bold]Values & Determination[/]  (invoke a Value to spend Determination for a bonus die)"),
+            Horizontal(
+                Vertical(Label("Value"), Select([("(none)", "")], value="", id="task-value", allow_blank=False)),
+                Vertical(Label("Invoke (spend 1 Det)"), Switch(id="task-invoke")),
+                Vertical(Label(" "), Button("Challenge Value (+1 Det)", id="btn-challenge-value")),
+                id="task-row3",
+            ),
+            Static("", id="determination-readout"),
             Button("Roll Task", id="btn-roll-task", variant="primary"),
             Static("", id="task-result"),
             Static("[bold]Challenge Dice[/]", classes="section-head"),
@@ -211,6 +219,8 @@ class CharacterSheetScreen(Screen):
             Static("", id="cd-result"),
         )
         self._refresh_focus_options()
+        self._refresh_value_options()
+        self._refresh_determination_readout()
 
     # -- list management -----------------------------------------------
 
@@ -226,6 +236,26 @@ class CharacterSheetScreen(Screen):
 
     def _refresh_values_list(self):
         self._refresh_simple_list("list-values", self.pending_values)
+        self._refresh_value_options()
+
+    def _refresh_value_options(self):
+        try:
+            select = self.query_one("#task-value", Select)
+        except Exception:
+            return
+        previous = select.value
+        options = [("(none)", "")] + [(v, v) for v in self.pending_values]
+        select.set_options(options)
+        if previous == "" or any(previous == v for _, v in options):
+            select.value = previous if previous is not Select.BLANK else ""
+
+    def _refresh_determination_readout(self):
+        try:
+            readout = self.query_one("#determination-readout", Static)
+        except Exception:
+            return
+        current = self._to_int("sta-determination", 0)
+        readout.update(f"[bold]Determination[/]: {current}/{sta.DETERMINATION_MAX}")
 
     def _refresh_talents_list(self):
         self._refresh_simple_list("list-talents", self.pending_talents)
@@ -336,6 +366,11 @@ class CharacterSheetScreen(Screen):
         focus = bool(focus_value) and focus_value is not Select.BLANK
         bonus = int(str(self.query_one("#task-bonus-dice", Select).value) or 0)
 
+        # Invoking a Value spends 1 Determination for an automatic bonus success.
+        invoke = self.query_one("#task-invoke", Switch).value
+        det_current = self._to_int("sta-determination", 0)
+        spend = 1 if invoke and det_current >= 1 else 0
+
         sheet = self._collect_sheet_from_widgets()
         result = dice.roll_task(
             attribute=sheet["attributes"][attr_key],
@@ -343,9 +378,19 @@ class CharacterSheetScreen(Screen):
             difficulty=max(0, difficulty),
             focus=focus,
             dice=2 + bonus,
+            determination=spend,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
         detail = result.detail
+        if spend:
+            new_det = sta.adjust_determination(det_current, -1)
+            self.query_one("#sta-determination", Input).value = str(new_det)
+            self.query_one("#task-invoke", Switch).value = False
+            self._refresh_determination_readout()
+            value = str(self.query_one("#task-value", Select).value)
+            detail += f"  --  invoked {value}" if value else "  --  invoked a Value"
+        elif invoke and det_current < 1:
+            detail += "  --  no Determination to spend"
         # Successes beyond the Difficulty become Momentum, which belongs to the
         # shared table pool rather than this character (see momentum.py). Bank
         # it automatically and report the pool's new level.
@@ -353,6 +398,18 @@ class CharacterSheetScreen(Screen):
             pools = db.adjust_momentum(result.momentum)
             detail += f"  --  banked {result.momentum} Momentum (pool {pools['momentum']})"
         self.query_one("#task-result", Static).update(f"[{colour}]{detail}[/]")
+
+    def _challenge_value(self):
+        """A challenged Value regains 1 Determination (accepting a complication)."""
+        current = self._to_int("sta-determination", 0)
+        new_det = sta.adjust_determination(current, 1)
+        self.query_one("#sta-determination", Input).value = str(new_det)
+        self._refresh_determination_readout()
+        value = str(self.query_one("#task-value", Select).value)
+        label = value or "a Value"
+        self.query_one("#task-result", Static).update(
+            f"Challenged {label} -- Determination now {new_det}/{sta.DETERMINATION_MAX}"
+        )
 
     def _do_roll_cd(self):
         count = self._to_int("cd-count", 1)
@@ -390,6 +447,8 @@ class CharacterSheetScreen(Screen):
             self._refresh_weapons_list()
         elif bid == "btn-roll-task":
             self._do_roll_task()
+        elif bid == "btn-challenge-value":
+            self._challenge_value()
         elif bid == "btn-roll-cd":
             self._do_roll_cd()
         elif bid == "btn-add-focus":
