@@ -64,6 +64,18 @@ Career). Right now a character can never grow — the single biggest missing loo
   spread within the STA limits. Validate against the same bounds the wizard uses.
 - Surface milestone history on the sheet and in the export stat block.
 
+**Status: Done.** New `advancement.py` holds the pure, validated edits a
+Milestone grants — swap/increase Attributes (bounds 7–12) and Departments
+(0–5) — raising a clear `ValueError` rather than silently clamping. The sheet
+gained a `milestones` log (`{type, date, note}`), normalized in `sta_sheet`. A
+new `MilestoneScreen` (reached via **Milestones** / `M` on an adventurer's detail
+screen, adventurer-only) records a milestone and applies one advancement per
+click — attribute/department swap or increase, add a Focus, add a Talent (both
+remembered in the Phase-13 libraries), or a note-only entry — logging a summary
+with the date and refusing illegal edits without touching the sheet. Milestone
+count shows in the detail summary and the full history exports to the vault stat
+block. 312 tests passing.
+
 ## Phase 13 — Reference libraries for Talents & Focuses
 
 **Why:** Cheapest win. Chargen and the sheet are slower than they need to be

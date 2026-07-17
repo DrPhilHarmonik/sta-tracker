@@ -18,6 +18,7 @@ from screens.common import DismissableScreen, PALETTE, entity_ref_options, tint_
 from screens.modals import ConfirmScreen
 from screens.sheet import CharacterSheetScreen
 from screens.starship import StarshipSheetScreen
+from screens.milestone import MilestoneScreen
 from screens.combat import CombatTrackerScreen
 from screens.wizard import WizardScreen, WIZARD_ENTITY_TYPES
 
@@ -291,6 +292,8 @@ def _format_sheet_lines(entity_type: str, raw_sheet: dict) -> list[str]:
             lines.append(f"    {w['name']} — {dice_count}[CD]{qual}")
     if sheet["injuries"]:
         lines.append(f"  Injuries: {', '.join(sheet['injuries'])}")
+    if sheet["milestones"]:
+        lines.append(f"  Milestones: {len(sheet['milestones'])}")
     return lines
 
 
@@ -301,6 +304,7 @@ class EntityDetailScreen(DismissableScreen):
         Binding("r", "add_rel", "Add Relation"),
         Binding("d", "del_rel", "Delete Relation"),
         Binding("c", "open_sheet", "Character Sheet"),
+        Binding("M", "open_milestones", "Milestones"),
         Binding("h", "make_hostile", "Make Hostile"),
         Binding("y", "make_allied", "Make Allied"),
         Binding("o", "open_combat", "Combat Tracker"),
@@ -323,6 +327,8 @@ class EntityDetailScreen(DismissableScreen):
             return True
         if action == "open_sheet":
             return entity["type"] in sta_mod.SHEET_ENTITY_TYPES or entity["type"] == "starship"
+        if action == "open_milestones":
+            return entity["type"] == "adventurer"
         if action in ("make_hostile", "make_allied"):
             return entity["type"] == "npc"
         if action == "open_combat":
@@ -360,6 +366,8 @@ class EntityDetailScreen(DismissableScreen):
         actions = self.query_one("#detail-actions")
         if entity["type"] in sta_mod.SHEET_ENTITY_TYPES:
             await actions.mount(Button("Character Sheet", id="btn-sheet", variant="warning"))
+        if entity["type"] == "adventurer":
+            await actions.mount(Button("Milestones", id="btn-milestones", variant="default"))
         if entity["type"] == "starship":
             await actions.mount(Button("Ship Sheet", id="btn-sheet", variant="warning"))
         if entity["type"] == "npc":
@@ -443,6 +451,8 @@ class EntityDetailScreen(DismissableScreen):
             self.dismiss()
         elif event.button.id == "btn-sheet":
             self.action_open_sheet()
+        elif event.button.id == "btn-milestones":
+            self.action_open_milestones()
         elif event.button.id == "btn-hostile":
             self.action_make_hostile()
         elif event.button.id == "btn-allied":
@@ -476,6 +486,11 @@ class EntityDetailScreen(DismissableScreen):
             self.app.push_screen(StarshipSheetScreen(self.entity_id), callback=lambda _: self._render_detail())
         elif entity["type"] in sta_mod.SHEET_ENTITY_TYPES:
             self.app.push_screen(CharacterSheetScreen(self.entity_id), callback=lambda _: self._render_detail())
+
+    def action_open_milestones(self):
+        entity = db.get_entity(self.entity_id)
+        if entity and entity["type"] == "adventurer":
+            self.app.push_screen(MilestoneScreen(self.entity_id), callback=lambda _: self._render_detail())
 
     def action_make_hostile(self):
         entity = db.get_entity(self.entity_id)

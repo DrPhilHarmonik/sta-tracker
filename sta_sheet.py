@@ -61,6 +61,7 @@ def default_sheet() -> dict:
         "protection": 0,          # armour Soak, reduces incoming injury
         "weapons": [],
         "injuries": [],
+        "milestones": [],         # advancement log: [{type, date, note}]
         "species": "",
         "rank": "",
         "career": "",             # Cadet / Officer / Veteran (career track)
@@ -68,6 +69,20 @@ def default_sheet() -> dict:
         "equipment": "",
         "special": "",            # freeform notes for anything unmodelled
     }
+
+
+def normalize_milestones(raw) -> list[dict]:
+    """Coerce a milestone log into ``[{type, date, note}]``, dropping blanks."""
+    normalized = []
+    for m in (raw or []):
+        if not isinstance(m, dict):
+            continue
+        normalized.append({
+            "type": str(m.get("type", "") or ""),
+            "date": str(m.get("date", "") or ""),
+            "note": str(m.get("note", "") or ""),
+        })
+    return normalized
 
 
 def _clamp(value, low, high, fallback):
@@ -118,6 +133,7 @@ def normalize_sheet(raw: dict | None) -> dict:
         for w in (raw.get("weapons") or [])
     ]
     sheet["injuries"] = [str(i) for i in (raw.get("injuries") or []) if str(i).strip()]
+    sheet["milestones"] = normalize_milestones(raw.get("milestones"))
 
     for key in ("species", "rank", "career", "role", "equipment", "special"):
         sheet[key] = str(raw.get(key, "") or "")

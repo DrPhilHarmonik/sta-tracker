@@ -197,6 +197,11 @@ def _format_character_markdown(raw_sheet: dict) -> list[str]:
         lines.append(f"- **Injuries:** {', '.join(sheet['injuries'])}")
     if sheet["equipment"]:
         lines.append(f"- **Equipment:** {sheet['equipment']}")
+    if sheet["milestones"]:
+        lines.append("- **Milestones:**")
+        for m in sheet["milestones"]:
+            when = f"{m['date']} " if m["date"] else ""
+            lines.append(f"  - {when}{m['type']}: {m['note']}")
     lines.append("")
     return lines
 

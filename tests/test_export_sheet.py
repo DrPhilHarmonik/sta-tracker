@@ -136,3 +136,21 @@ def test_ui_export_sheet_button_exists(monkeypatch, tmp_path):
             assert btn is not None
 
     run(scenario)
+
+
+def test_export_includes_milestones(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Sotek", {"species": "Vulcan"}, "")
+    db.update_entity(eid, "Sotek", {
+        "species": "Vulcan",
+        "sheet": {
+            "attributes": {"control": 11, "daring": 8, "fitness": 10, "insight": 9, "presence": 8, "reason": 12},
+            "departments": {"command": 2, "conn": 1, "engineering": 2, "security": 2, "medicine": 1, "science": 4},
+            "milestones": [{"type": "Arc", "date": "2401-05-02", "note": "Reason +1"}],
+        },
+    }, "")
+    out = tmp_path / "sotek.md"
+    exp.export_entity_sheet(eid, out)
+    content = out.read_text()
+    assert "Milestones" in content
+    assert "Arc: Reason +1" in content
