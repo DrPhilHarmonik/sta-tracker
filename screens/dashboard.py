@@ -42,7 +42,7 @@ class Dashboard(Screen):
         Binding("b", "backup", "Backup/Restore"),
         Binding("ctrl+w", "campaigns", "Campaigns"),
         Binding("p", "party_overview", "Party Overview"),
-        Binding("m", "monster_ref", "Monster Ref"),
+        Binding("m", "monster_ref", "Adversaries"),
         Binding("R", "relationship_browser", "Relationships"),
     ]
 
@@ -55,7 +55,7 @@ class Dashboard(Screen):
             Horizontal(
                 Button("Switch Campaign", id="btn-campaigns", variant="default"),
                 Button("Party Overview", id="btn-party", variant="primary"),
-                Button("Monster Ref", id="btn-monster", variant="default"),
+                Button("Adversaries", id="btn-monster", variant="default"),
                 Button("Export MD", id="btn-export", variant="success"),
                 Button("Search All", id="btn-search", variant="primary"),
                 Button("Backup / Restore", id="btn-backup", variant="default"),

@@ -246,6 +246,20 @@ NPC / Major NPC tiers, which drive how much Stress and how many Values they get)
 the GM enters their own stat blocks. Reference panel explains the NPC tiers'
 mechanics.
 
+**Status: Done.** `srd.py`, `data/monsters.json` (507 KB of 5e stat blocks) and
+`dev/build_srd.py` are deleted. New `adversaries.py` is a user-authored library
+that **ships empty** and persists to `adversaries.json` next to the campaign DB
+(so it is shared across campaigns in one config dir, isolated per config dir in
+tests). Adversaries carry a full STA shape (Minor/Notable/Major kind,
+Attributes, Departments, Stress, Protection, weapons, focuses, traits) with
+`save`/`remove`/`search`/`find`/`from_entity`/`build_sheet` helpers. The reference
+screen (still `MonsterRefScreen`, id-stable) is rewired: it shows an empty-state
+prompt, lets the GM snapshot any campaign enemy into the library ("Save to
+Library"), spawn a saved adversary into the campaign as an enemy with a built
+STA sheet ("Add to Campaign" -> lands on its Character Sheet), and remove
+entries. Dashboard affordance relabelled "Adversaries". `test_srd.py` replaced by
+`test_adversaries.py`; `test_ui_monster_ref.py` rewritten. 331 tests passing.
+
 ### Phase 9 — Starships
 
 New `starship` entity type + starship sheet shape (Systems, Departments, Shields,
