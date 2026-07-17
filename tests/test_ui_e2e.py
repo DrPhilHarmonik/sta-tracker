@@ -57,36 +57,19 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             assert saved_sheet["attributes"]["control"] == 11
             assert saved_sheet["departments"]["command"] == 3
 
-            # 3. Roll dice -- confirm it uses the sheet we just saved.
+            # 3. Open the detail view -- confirm the STA sheet we just saved
+            #    surfaces in the character summary.
             table = app.screen.query_one("#entity-table")
             table.move_cursor(row=0)
             await pilot.pause()
             app.screen.action_open_selected()
             await pilot.pause()
             detail = app.screen
-            detail.action_open_roll()
-            await pilot.pause()
-            roll_screen = app.screen
-            roll_screen.query_one("#btn-roll-ability-check").press()
-            await pilot.pause()
-            assert "Strength Check" in str(roll_screen.query_one("#roll-result").content)
-            await pilot.press("escape")
-            await pilot.pause()
+            body = str(detail.query_one("#detail-body").content)
+            assert "Character Sheet" in body
+            assert "Control 11" in body
 
-            # 4. Apply an effect and confirm it shows on the detail screen.
-            detail.action_open_effects()
-            await pilot.pause()
-            fxscreen = app.screen
-            fxscreen.query_one("#input-effect-source").value = "Potion of Speed"
-            fxscreen.query_one("#sel-effect-stat").value = "dex"
-            fxscreen.query_one("#input-effect-modifier").value = "2"
-            fxscreen.query_one("#btn-add-effect").press()
-            await pilot.pause()
-            await pilot.press("escape")
-            await pilot.pause()
-            assert "Potion of Speed" in detail.query_one("#detail-body").content
-
-            # 5. Run a combat round and confirm the sheet values + effect
+            # 5. Run a combat round and confirm the sheet values
             #    carry into the roster summary.
             await pilot.press("escape")
             await pilot.pause()
@@ -141,10 +124,10 @@ def test_full_happy_path_session(monkeypatch, tmp_path):
             assert "Exported 2 entities" in str(export_screen.query_one("#export-status").content)
 
             mira_md = (vault_dir / "Adventurer" / "Mira Thorn.md").read_text(encoding="utf-8")
-            # Export is still the 5e exporter (roadmap Phase 10); it round-trips
-            # the flat entity fields and active effects regardless of sheet shape.
-            # STA sheet frontmatter arrives when the exporter is migrated.
+            # The exporter now emits the STA character sheet: frontmatter plus a
+            # Character Sheet section carrying the Attributes we saved in step 2.
             assert "name: Mira Thorn" in mira_md
-            assert "Potion of Speed" in mira_md
+            assert "## Character Sheet" in mira_md
+            assert "Control 11" in mira_md
 
     asyncio.run(scenario())

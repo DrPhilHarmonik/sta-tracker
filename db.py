@@ -5,16 +5,14 @@ from pathlib import Path
 from datetime import datetime
 
 import models
-import sheet as sheet_mod
 import sta_sheet as sta_sheet_mod
 import starship as starship_mod
 import momentum as momentum_mod
-import effects as effects_mod
 import combat as combat_mod
 
 DEFAULT_DB_PATH = Path.home() / ".config" / "sta" / "campaign.db"
 
-SPECIAL_FIELD_KEYS = {"sheet", "active_effects", "combat", "objectives"}
+SPECIAL_FIELD_KEYS = {"sheet", "combat", "objectives"}
 
 
 def db_path() -> Path:
@@ -131,34 +129,25 @@ def objective_progress(fields: dict) -> tuple[int, int]:
 
 
 def _normalize_sheet_any(raw: dict) -> dict:
-    """Normalize a sheet by shape. Three shapes coexist during the STA
-    migration: a starship sheet carries ``systems``; an STA character sheet
-    carries ``attributes``/``departments``; the legacy 5e sheet carries
-    ``abilities``. The ``systems`` check comes first because a starship sheet
-    also has ``departments``. When the last 5e reader is gone (roadmap Phase 10)
-    the 5e branch and ``sheet.py`` go with it."""
+    """Normalize a sheet by shape. A starship sheet carries ``systems``; a
+    character sheet carries ``attributes``/``departments``. The ``systems``
+    check comes first because a starship sheet also has ``departments``."""
     if "systems" in raw:
         return starship_mod.normalize_sheet(raw)
-    if "attributes" in raw or "departments" in raw:
-        return sta_sheet_mod.normalize_sheet(raw)
-    return sheet_mod.normalize_sheet(raw)
+    return sta_sheet_mod.normalize_sheet(raw)
 
 
 def normalize_special_fields(fields: dict, type_: str | None = None) -> dict:
-    """Type-check and normalize the sheet/active_effects/combat sub-shapes
-    that ride alongside an entity's flat schema fields. Used by every write
-    path, including bulk import, so malformed nested data can never reach
-    the database -- sheet.normalize_sheet() etc. are deliberately lenient
-    about missing keys, so this stays backward-compatible with older data."""
+    """Type-check and normalize the sheet/combat sub-shapes that ride
+    alongside an entity's flat schema fields. Used by every write path,
+    including bulk import, so malformed nested data can never reach the
+    database -- the sheet normalizers are deliberately lenient about missing
+    keys, so this stays backward-compatible with older data."""
     fields = dict(fields)
     if "sheet" in fields:
         if not isinstance(fields["sheet"], dict):
             raise ValueError("fields['sheet'] must be an object")
         fields["sheet"] = _normalize_sheet_any(fields["sheet"])
-    if "active_effects" in fields:
-        if not isinstance(fields["active_effects"], list):
-            raise ValueError("fields['active_effects'] must be a list")
-        fields["active_effects"] = effects_mod.normalize_effects(fields["active_effects"])
     if "combat" in fields:
         if not isinstance(fields["combat"], dict):
             raise ValueError("fields['combat'] must be an object")
@@ -175,7 +164,7 @@ def normalize_special_fields(fields: dict, type_: str | None = None) -> dict:
 def validate_fields(type_: str, fields: dict) -> dict:
     """Strict validation for live create/update: rejects unknown flat field
     keys and out-of-range select/number values for the given entity type,
-    then normalizes the sheet/active_effects/combat sub-shapes. Bulk import
+    then normalizes the sheet/combat sub-shapes. Bulk import
     (replace_all) intentionally skips the strict flat-field checks and only
     normalizes the sub-shapes, so restoring an older backup whose schema has
     since changed doesn't fail on fields that were valid when it was taken."""

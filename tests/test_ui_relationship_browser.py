@@ -15,7 +15,7 @@ def _setup(monkeypatch, tmp_path):
 
 
 def _seed_relationships():
-    npc_id = db.create_entity("npc", "Mira Thorn", {"race": "Human"}, "")
+    npc_id = db.create_entity("npc", "Mira Thorn", {"species": "Human"}, "")
     quest_id = db.create_entity("quest", "Find the Moon Key", {"status": "Active"}, "")
     faction_id = db.create_entity("faction", "Silver Circle", {}, "")
     db.create_relationship(npc_id, quest_id, "gave quest", "")

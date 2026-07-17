@@ -5,9 +5,8 @@ from textual.widgets import Header, Footer, DataTable, Static
 from textual.containers import Container
 
 import db
-import sheet as shm
+import sta_sheet as sta
 import combat as cbt
-import effects as fx
 from screens.common import DismissableScreen, tint_border
 
 
@@ -31,8 +30,7 @@ class PartyOverviewScreen(DismissableScreen):
         tint_border(self.query_one("#overview-wrap"), "adventurer")
         table = self.query_one("#party-table", DataTable)
         table.add_columns(
-            "Name", "Insp", "Class", "HP", "AC",
-            "Conditions", "Spell Slots", "Active Effects",
+            "Name", "Rank", "Stress", "Det", "Focuses", "Traits", "Injuries",
         )
         self._load_data()
 
@@ -51,42 +49,28 @@ class PartyOverviewScreen(DismissableScreen):
             return
         self.query_one("#overview-status", Static).update("")
 
-        conditions_by_id = _get_combat_conditions()
+        traits_by_id = _get_combat_traits()
 
         for adv in adventurers:
-            sheet = shm.normalize_sheet(adv["fields"].get("sheet", {}))
-            active_effects = adv["fields"].get("active_effects", [])
-            class_name = adv["fields"].get("class_name", "")
-            inspiration = bool(adv["fields"].get("inspiration", False))
+            sheet = sta.normalize_sheet(adv["fields"].get("sheet", {}))
 
-            hp_cur = sheet["hp_current"]
-            hp_max = sheet["hp_max"]
-            hp_text = _hp_cell(hp_cur, hp_max)
+            stress_text = _stress_cell(sheet["stress_current"], sheet["stress_max"])
+            rank = sheet["rank"] or "—"
+            focuses = ", ".join(sheet["focuses"]) if sheet["focuses"] else "—"
 
-            insp_text = Text("★", style="bold yellow") if inspiration else Text("—", style="dim")
+            traits = traits_by_id.get(adv["id"], [])
+            trait_str = ", ".join(c["name"] for c in traits) if traits else "—"
 
-            conditions = conditions_by_id.get(adv["id"], [])
-            cond_str = ", ".join(c["name"] for c in conditions) if conditions else "—"
-
-            slots_str = _format_slots(sheet) or "—"
-
-            effect_parts = []
-            for e in fx.normalize_effects(active_effects):
-                mod = shm.format_modifier(e["modifier"])
-                label = fx.STAT_LABELS.get(e["stat"], e["stat"])
-                rounds = f" ({e['rounds_remaining']}r)" if e.get("rounds_remaining") is not None else ""
-                effect_parts.append(f"{e['source']} {mod} {label}{rounds}")
-            effects_str = ", ".join(effect_parts) if effect_parts else "—"
+            injuries = ", ".join(sheet["injuries"]) if sheet["injuries"] else "—"
 
             table.add_row(
                 adv["name"],
-                insp_text,
-                class_name or "—",
-                hp_text,
-                str(sheet["ac"]),
-                cond_str,
-                slots_str,
-                effects_str,
+                rank,
+                stress_text,
+                str(sheet["determination"]),
+                focuses,
+                trait_str,
+                injuries,
             )
 
     def action_refresh_data(self):
@@ -95,12 +79,12 @@ class PartyOverviewScreen(DismissableScreen):
 
 # -- helpers ------------------------------------------------------------------
 
-def _hp_cell(hp_cur: int, hp_max: int) -> Text:
-    label = f"{hp_cur}/{hp_max}"
-    if hp_max == 0:
+def _stress_cell(current: int, maximum: int) -> Text:
+    label = f"{current}/{maximum}"
+    if maximum == 0:
         return Text(label, style="dim")
-    pct = hp_cur / hp_max
-    if hp_cur == 0:
+    pct = current / maximum
+    if current == 0:
         color = "bold red"
     elif pct > 0.5:
         color = "green"
@@ -111,8 +95,8 @@ def _hp_cell(hp_cur: int, hp_max: int) -> Text:
     return Text(label, style=color)
 
 
-def _get_combat_conditions() -> dict[int, list[dict]]:
-    """Return {entity_id: [condition,...]} for combatants in any started encounter."""
+def _get_combat_traits() -> dict[int, list[dict]]:
+    """Return {entity_id: [trait,...]} for combatants in any started conflict."""
     result: dict[int, list[dict]] = {}
     for enc in db.list_entities("encounter"):
         combat = cbt.normalize_combat(enc["fields"].get("combat"))
@@ -122,14 +106,3 @@ def _get_combat_conditions() -> dict[int, list[dict]]:
             if combatant["conditions"]:
                 result[combatant["entity_id"]] = combatant["conditions"]
     return result
-
-
-def _format_slots(sheet: dict) -> str:
-    parts = []
-    for lvl in range(1, 10):
-        slot = sheet.get("spell_slots", {}).get(str(lvl), {})
-        cur = slot.get("current", 0)
-        mx = slot.get("max", 0)
-        if mx > 0:
-            parts.append(f"L{lvl}:{cur}/{mx}")
-    return "  ".join(parts)

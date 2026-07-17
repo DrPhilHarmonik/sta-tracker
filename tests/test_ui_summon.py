@@ -23,7 +23,7 @@ def _setup(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
     pc_id = db.create_entity("adventurer", "Mira the Mage", {
-        "level": "5",
+        "species": "Human",
         "sheet": {"abilities": {"str": 8, "dex": 14, "con": 12, "int": 16, "wis": 12, "cha": 10},
                   "ac": 12, "hp_max": 30, "hp_current": 30, "level": 5, "spellcasting_ability": "int"},
     }, "")
@@ -65,7 +65,7 @@ def test_summon_creates_relationship_and_adds_to_combat(monkeypatch, tmp_path):
 
             # Set summoner then invoke the callback directly (bypassing wizard UI)
             summon_id = db.create_entity("enemy", "Fire Elemental", {
-                "cr": "5", "creature_type": "Elemental",
+                "kind": "Notable NPC",
                 "sheet": {"abilities": {"str": 18, "dex": 13, "con": 14, "int": 6, "wis": 10, "cha": 7},
                           "ac": 13, "hp_max": 102, "hp_current": 102, "cr": "5"},
             }, "")
@@ -90,7 +90,7 @@ def test_summon_creates_relationship_and_adds_to_combat(monkeypatch, tmp_path):
 def test_summon_is_linked_to_correct_summoner(monkeypatch, tmp_path):
     pc_id, enc_id = _setup(monkeypatch, tmp_path)
     # Add a second adventurer
-    other_id = db.create_entity("adventurer", "Tank the Warrior", {"level": "5"}, "")
+    other_id = db.create_entity("adventurer", "Tank the Warrior", {"rank": "Ensign"}, "")
 
     async def scenario():
         app = STAApp()
@@ -101,7 +101,7 @@ def test_summon_is_linked_to_correct_summoner(monkeypatch, tmp_path):
             await pilot.pause(0.3)
 
             summon_id = db.create_entity("enemy", "Wolf", {
-                "cr": "1/4", "creature_type": "Beast",
+                "kind": "Minor NPC",
                 "sheet": {"abilities": {"str": 12, "dex": 15, "con": 12, "int": 3, "wis": 12, "cha": 6},
                           "ac": 13, "hp_max": 11, "hp_current": 11, "cr": "1/4"},
             }, "")

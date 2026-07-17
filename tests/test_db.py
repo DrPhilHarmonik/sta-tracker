@@ -8,7 +8,7 @@ def test_entity_crud_and_search(monkeypatch, tmp_path):
     entity_id = db.create_entity(
         "npc",
         "Mira Thorn",
-        {"race": "Human", "role": "Innkeeper"},
+        {"species": "Human", "role": "Innkeeper"},
         "Knows the old road.",
     )
 
@@ -23,7 +23,7 @@ def test_entity_crud_and_search(monkeypatch, tmp_path):
     db.update_entity(
         entity_id,
         "Mira Thorn",
-        {"race": "Human", "role": "Guild Contact"},
+        {"species": "Human", "role": "Guild Contact"},
         "Pays for information.",
     )
 

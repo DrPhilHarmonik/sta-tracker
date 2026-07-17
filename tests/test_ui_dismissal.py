@@ -84,43 +84,6 @@ def test_escaping_combat_tracker_refreshes_the_caller_detail(monkeypatch, tmp_pa
     run(scenario)
 
 
-def test_escaping_effects_screen_refreshes_the_caller_detail(monkeypatch, tmp_path):
-    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
-    db.init_db()
-    adv_id = db.create_entity("adventurer", "Mira Thorn", {}, "")
-
-    async def scenario():
-        app = STAApp()
-        async with app.run_test(size=(120, 50)) as pilot:
-            await pilot.pause()
-            await pilot.press("a")
-            await pilot.pause()
-            table = app.screen.query_one("#entity-table")
-            table.move_cursor(row=0)
-            await pilot.pause()
-            app.screen.action_open_selected()
-            await pilot.pause()
-            detail = app.screen
-            assert "Active Effects" not in detail.query_one("#detail-body").content
-
-            detail.action_open_effects()
-            await pilot.pause()
-            fxscreen = app.screen
-            fxscreen.query_one("#input-effect-source").value = "Potion of Speed"
-            fxscreen.query_one("#sel-effect-stat").value = "dex"
-            fxscreen.query_one("#input-effect-modifier").value = "2"
-            fxscreen.query_one("#btn-add-effect").press()
-            await pilot.pause()
-
-            await pilot.press("escape")
-            await pilot.pause()
-            assert app.screen is detail
-            assert "Active Effects" in detail.query_one("#detail-body").content
-            assert "Potion of Speed" in detail.query_one("#detail-body").content
-
-    run(scenario)
-
-
 def test_select_set_options_preserves_selection_across_combat_actions(monkeypatch, tmp_path):
     """Regression for the bug where refreshing the combatant dropdowns after
     every action wiped whichever combatant the DM had selected, silently

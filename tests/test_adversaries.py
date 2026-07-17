@@ -76,9 +76,9 @@ def test_search_matches_name_and_kind(monkeypatch, tmp_path):
 
 def test_from_entity_snapshots_sheet(monkeypatch, tmp_path):
     _fresh(monkeypatch, tmp_path)
-    eid = db.create_entity("enemy", "Jem'Hadar", {"cr": "Major NPC"}, "")
+    eid = db.create_entity("enemy", "Jem'Hadar", {"kind": "Major NPC"}, "")
     db.update_entity(eid, "Jem'Hadar", {
-        "cr": "Major NPC",
+        "kind": "Major NPC",
         "sheet": {
             "attributes": {"control": 10, "daring": 11, "fitness": 12, "insight": 8, "presence": 9, "reason": 8},
             "departments": {"command": 2, "conn": 2, "engineering": 1, "security": 5, "medicine": 1, "science": 1},

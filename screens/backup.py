@@ -9,14 +9,6 @@ from pathlib import Path
 
 import db
 import export as exp
-import sheet as shm
-import dice
-import combat as cbt
-import effects as fx
-import classes
-from importers import import_entity
-from importers.ddb import parse_ddb_json
-from importers.csv_import import parse_csv, write_template
 from models import ENTITY_TYPES, ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCHEMAS, RELATIONSHIP_TYPES
 
 from screens.common import DismissableScreen, PALETTE, format_io_error
@@ -33,7 +25,7 @@ class ExportScreen(DismissableScreen):
             Input(value=str(Path.home() / "campaign_vault"), id="export-path"),
             Horizontal(
                 Switch(value=True, id="export-include-stats"),
-                Label("Include character sheets & active effects"),
+                Label("Include character & starship sheets"),
                 id="export-stats-row",
             ),
             Horizontal(
@@ -98,20 +90,6 @@ class BackupScreen(DismissableScreen):
                     id="vault-import-actions",
                 ),
                 Static("", id="vault-import-status"),
-                Static("Import D&D Beyond Character", id="ddb-import-title"),
-                Label("D&D Beyond character JSON export path:"),
-                Input(value=str(Path.home() / "Downloads" / "character.json"), id="ddb-import-path"),
-                Button("Import D&D Beyond Character", id="btn-ddb-import", variant="primary"),
-                Static("", id="ddb-import-status"),
-                Static("Import CSV", id="csv-import-title"),
-                Label("CSV file path:"),
-                Input(value=str(Path.home() / "campaign_import.csv"), id="csv-import-path"),
-                Horizontal(
-                    Button("Import CSV", id="btn-csv-import", variant="primary"),
-                    Button("Download Template", id="btn-csv-template"),
-                    id="csv-import-actions",
-                ),
-                Static("", id="csv-import-status"),
                 Button("Back", id="btn-back"),
                 id="backup-container",
             ),
@@ -139,12 +117,6 @@ class BackupScreen(DismissableScreen):
                 ConfirmScreen("This will ERASE all current data and replace it with the imported vault. Continue?"),
                 callback=self._on_vault_replace_confirmed,
             )
-        elif event.button.id == "btn-ddb-import":
-            self._do_ddb_import()
-        elif event.button.id == "btn-csv-import":
-            self._do_csv_import()
-        elif event.button.id == "btn-csv-template":
-            self._do_csv_template()
         elif event.button.id == "btn-back":
             self.dismiss()
 
@@ -183,53 +155,3 @@ class BackupScreen(DismissableScreen):
             )
         except Exception as ex:
             self.query_one("#vault-import-status", Static).update(f"[red]{format_io_error(ex)}[/red]")
-
-    def _do_ddb_import(self):
-        path = Path(self.query_one("#ddb-import-path", Input).value.strip()).expanduser()
-        status = self.query_one("#ddb-import-status", Static)
-        try:
-            parsed = parse_ddb_json(path)
-            result = import_entity(
-                parsed["name"], parsed["entity_type"],
-                parsed["fields"], parsed["notes"],
-            )
-            msg = f"[green]Imported '{parsed['name']}' as adventurer[/green]"
-            if result["warning"]:
-                msg += f"\n[yellow]Warning: {result['warning']}[/yellow]"
-            status.update(msg)
-        except ValueError as ex:
-            status.update(f"[red]{ex}[/red]")
-        except Exception as ex:
-            status.update(f"[red]{format_io_error(ex)}[/red]")
-
-    def _do_csv_import(self):
-        path = Path(self.query_one("#csv-import-path", Input).value.strip()).expanduser()
-        status = self.query_one("#csv-import-status", Static)
-        try:
-            rows = parse_csv(path)
-            if not rows:
-                status.update("[yellow]No valid rows found -- check that 'name' and 'type' columns are present[/yellow]")
-                return
-            created = 0
-            warnings = []
-            for row in rows:
-                result = import_entity(row["name"], row["entity_type"], row["fields"], row["notes"])
-                created += 1
-                if result["warning"]:
-                    warnings.append(result["warning"])
-            msg = f"[green]Imported {created} entity/entities[/green]"
-            if warnings:
-                msg += "\n[yellow]" + "; ".join(warnings) + "[/yellow]"
-            status.update(msg)
-        except Exception as ex:
-            status.update(f"[red]{format_io_error(ex)}[/red]")
-
-    def _do_csv_template(self):
-        path = Path(self.query_one("#csv-import-path", Input).value.strip()).expanduser()
-        template_path = path.parent / "campaign_import_template.csv"
-        status = self.query_one("#csv-import-status", Static)
-        try:
-            write_template(template_path)
-            status.update(f"[green]Template written to {template_path}[/green]")
-        except Exception as ex:
-            status.update(f"[red]{format_io_error(ex)}[/red]")

@@ -15,34 +15,27 @@ def _make_adventurer(name="Thorin") -> int:
         "adventurer",
         name,
         {
-            "class_name": "Fighter",
-            "level": "3",
+            "species": "Human",
+            "rank": "Lieutenant",
             "sheet": {
-                "level": 3,
-                "hp_max": 28,
-                "hp_current": 28,
-                "ac": 16,
-                "abilities": {"str": 16, "dex": 12, "con": 14, "int": 10, "wis": 11, "cha": 9},
+                "attributes": {"control": 11, "daring": 10, "fitness": 10, "insight": 9, "presence": 9, "reason": 8},
+                "departments": {"command": 3, "conn": 2, "engineering": 1, "security": 2, "medicine": 1, "science": 1},
             },
         },
         "",
     )
 
 
-def _make_enemy(name="Goblin Boss") -> int:
+def _make_enemy(name="Klingon Warrior") -> int:
     return db.create_entity(
         "enemy",
         name,
         {
-            "cr": "1",
-            "creature_type": "Humanoid",
+            "kind": "Notable NPC",
+            "species": "Klingon",
             "sheet": {
-                "cr": "1",
-                "creature_type": "Humanoid",
-                "hp_max": 21,
-                "hp_current": 21,
-                "ac": 17,
-                "abilities": {"str": 10, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
+                "attributes": {"control": 9, "daring": 11, "fitness": 11, "insight": 8, "presence": 9, "reason": 8},
+                "departments": {"command": 2, "conn": 2, "engineering": 1, "security": 4, "medicine": 1, "science": 1},
             },
         },
         "",
@@ -76,23 +69,23 @@ def test_export_contains_sheet_section(monkeypatch, tmp_path):
     assert "## Character Sheet" in content
 
 
-def test_export_contains_abilities(monkeypatch, tmp_path):
+def test_export_contains_attributes(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     eid = _make_adventurer()
-    out = tmp_path / "abilities.md"
+    out = tmp_path / "attributes.md"
     exp.export_entity_sheet(eid, out)
     content = out.read_text()
-    assert "STR" in content
-    assert "DEX" in content
+    assert "Control" in content
+    assert "Reason" in content
 
 
-def test_export_enemy_contains_cr(monkeypatch, tmp_path):
+def test_export_enemy_contains_stress(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     eid = _make_enemy()
     out = tmp_path / "enemy.md"
     exp.export_entity_sheet(eid, out)
     content = out.read_text()
-    assert "CR" in content
+    assert "Stress" in content
 
 
 def test_export_default_path_slugified_name(monkeypatch, tmp_path):

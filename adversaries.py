@@ -134,7 +134,7 @@ def from_entity(entity: dict) -> dict:
     sheet = sta.normalize_sheet(fields.get("sheet", {}))
     return normalize({
         "name": entity.get("name", ""),
-        "kind": fields.get("cr") or DEFAULT_KIND,
+        "kind": fields.get("kind") or DEFAULT_KIND,
         "attributes": sheet["attributes"],
         "departments": sheet["departments"],
         "stress_max": sheet["stress_max"],

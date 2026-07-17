@@ -8,15 +8,18 @@ import yaml
 import db
 from db import list_entities, get_relationships
 from models import ENTITY_LABELS, ENTITY_SCHEMAS, ENTITY_TYPES
-import sheet as shm
-import effects as fx
+import sta_sheet as sta_mod
+import starship as ship_mod
 
 BACKUP_FORMAT = "dm-tracker-backup"
 BACKUP_VERSION = 1
 
+# Entity types that carry a sheet worth exporting (character sheet or ship).
+_SHEET_TYPES = set(sta_mod.SHEET_ENTITY_TYPES) | set(ship_mod.SHEET_ENTITY_TYPES)
+
 # Frontmatter keys that aren't flat schema fields -- handled separately on
 # both export and import.
-_NON_SCHEMA_KEYS = {"type", "name", "sheet", "active_effects", "combat", "created", "updated"}
+_NON_SCHEMA_KEYS = {"type", "name", "sheet", "combat", "created", "updated"}
 
 
 def slugify(name: str) -> str:
@@ -158,67 +161,65 @@ def _require_keys(row: dict, keys: list[str], label: str):
         raise ValueError(f"Backup {label} missing required keys: {', '.join(missing)}")
 
 
-def _format_sheet_markdown(entity_type: str, raw_sheet: dict, raw_effects: list) -> list[str]:
-    base_sheet = shm.normalize_sheet(raw_sheet)
-    active_effects = fx.normalize_effects(raw_effects)
-    sheet_data = fx.apply_to_sheet(base_sheet, active_effects)
-    pb = shm.proficiency_bonus(entity_type, sheet_data)
+def _format_sheet_markdown(entity_type: str, raw_sheet: dict) -> list[str]:
+    """Markdown stat block for the vault. Dispatches on entity type: starships
+    get the ship sheet, everyone else the STA character sheet."""
+    if entity_type == "starship":
+        return _format_starship_markdown(raw_sheet)
+    return _format_character_markdown(raw_sheet)
 
+
+def _format_character_markdown(raw_sheet: dict) -> list[str]:
+    sheet = sta_mod.normalize_sheet(raw_sheet)
     lines = ["## Character Sheet", ""]
-    ability_parts = [
-        f"{a.upper()} {sheet_data['abilities'][a]} ({shm.format_modifier(shm.ability_modifier(sheet_data['abilities'][a]))})"
-        for a in shm.ABILITIES
-    ]
-    lines.append(f"- **Abilities:** {', '.join(ability_parts)}")
+    lines.append("- **Attributes:** " + ", ".join(f"{sta_mod.ATTRIBUTE_LABELS[a]} {sheet['attributes'][a]}" for a in sta_mod.ATTRIBUTES))
+    lines.append("- **Departments:** " + ", ".join(f"{sta_mod.DEPARTMENT_LABELS[d]} {sheet['departments'][d]}" for d in sta_mod.DEPARTMENTS))
     lines.append(
-        f"- **AC:** {sheet_data['ac']}  **HP:** {sheet_data['hp_current']}/{sheet_data['hp_max']}  "
-        f"**Speed:** {sheet_data['speed']} ft.  **Proficiency Bonus:** {shm.format_modifier(pb)}"
+        f"- **Stress:** {sheet['stress_current']}/{sheet['stress_max']}  "
+        f"**Determination:** {sheet['determination']}  **Protection:** {sheet['protection']}"
     )
-    if entity_type == "enemy":
-        lines.append(f"- **CR:** {sheet_data['cr']}  **Creature Type:** {sheet_data['creature_type']}")
-    else:
-        lines.append(f"- **Level:** {sheet_data['level']}")
+    profile = [f"**{lbl}:** {sheet[key]}" for lbl, key in (("Species", "species"), ("Rank", "rank"), ("Career", "career"), ("Role", "role")) if sheet[key]]
+    if profile:
+        lines.append("- " + "  ".join(profile))
+    if sheet["focuses"]:
+        lines.append(f"- **Focuses:** {', '.join(sheet['focuses'])}")
+    if sheet["values"]:
+        lines.append(f"- **Values:** {', '.join(sheet['values'])}")
+    if sheet["talents"]:
+        lines.append(f"- **Talents:** {', '.join(sheet['talents'])}")
+    if sheet["weapons"]:
+        lines.append("- **Weapons:**")
+        for w in sheet["weapons"]:
+            dice_count = sta_mod.weapon_dice(sheet, w)
+            qual = f" [{w['qualities']}]" if w["qualities"] else ""
+            lines.append(f"  - {w['name']} — {dice_count}[CD]{qual}")
+    if sheet["injuries"]:
+        lines.append(f"- **Injuries:** {', '.join(sheet['injuries'])}")
+    if sheet["equipment"]:
+        lines.append(f"- **Equipment:** {sheet['equipment']}")
+    lines.append("")
+    return lines
 
-    if sheet_data["saving_throw_proficiencies"]:
-        saves = ", ".join(
-            f"{a.upper()} {shm.format_modifier(shm.saving_throw_bonus(sheet_data, a, pb))}"
-            for a in shm.ABILITIES if a in sheet_data["saving_throw_proficiencies"]
-        )
-        lines.append(f"- **Saves:** {saves}")
 
-    proficient_skills = [s for s in shm.SKILLS if sheet_data["skill_proficiencies"].get(s, "none") != "none"]
-    if proficient_skills:
-        skills_str = ", ".join(
-            f"{shm.SKILL_LABELS[s]} {shm.format_modifier(shm.skill_bonus(sheet_data, s, pb))}"
-            for s in proficient_skills
-        )
-        lines.append(f"- **Skills:** {skills_str}")
-
-    if sheet_data["attacks"]:
-        lines.append("- **Attacks:**")
-        for atk in sheet_data["attacks"]:
-            bonus = shm.format_modifier(int(atk.get("bonus", 0) or 0))
-            lines.append(f"  - {atk.get('name', '?')} {bonus} to hit, {atk.get('damage', '')} {atk.get('damage_type', '')}".rstrip())
-
-    for label, key in (("Resistances", "resistances"), ("Immunities", "immunities"), ("Vulnerabilities", "vulnerabilities")):
-        if sheet_data[key]:
-            lines.append(f"- **{label}:** {sheet_data[key]}")
-
-    if sheet_data["special_abilities"]:
-        lines.append("- **Special Abilities:**")
-        for sa in sheet_data["special_abilities"]:
-            lines.append(f"  - **{sa.get('name', '?')}:** {sa.get('description', '')}")
-
-    for label, key in (("Senses", "senses"), ("Languages", "languages")):
-        if sheet_data[key]:
-            lines.append(f"- **{label}:** {sheet_data[key]}")
-
-    if active_effects:
-        lines.append("- **Active Effects:**")
-        for effect in active_effects:
-            duration = f"{effect['rounds_remaining']} rounds left" if effect["rounds_remaining"] is not None else "indefinite"
-            lines.append(f"  - {effect['source']}: {shm.format_modifier(effect['modifier'])} {fx.STAT_LABELS[effect['stat']]} ({duration})")
-
+def _format_starship_markdown(raw_sheet: dict) -> list[str]:
+    sheet = ship_mod.normalize_sheet(raw_sheet)
+    lines = ["## Starship Sheet", ""]
+    lines.append("- **Systems:** " + ", ".join(f"{ship_mod.SYSTEM_LABELS[s]} {sheet['systems'][s]}" for s in ship_mod.SYSTEMS))
+    lines.append("- **Departments:** " + ", ".join(f"{ship_mod.DEPARTMENT_LABELS[d]} {sheet['departments'][d]}" for d in ship_mod.DEPARTMENTS))
+    lines.append(
+        f"- **Scale:** {sheet['scale']}  **Resistance:** {ship_mod.resistance(sheet)}  "
+        f"**Shields:** {sheet['shields_current']}/{sheet['shields_max']}  **Crew Support:** {sheet['crew_support']}"
+    )
+    if sheet["talents"]:
+        lines.append(f"- **Talents:** {', '.join(sheet['talents'])}")
+    if sheet["traits"]:
+        lines.append(f"- **Traits:** {', '.join(sheet['traits'])}")
+    if sheet["weapons"]:
+        lines.append("- **Weapons:**")
+        for w in sheet["weapons"]:
+            dice_count = ship_mod.weapon_dice(sheet, w)
+            qual = f" [{w['qualities']}]" if w["qualities"] else ""
+            lines.append(f"  - {w['name']} — {dice_count}[CD]{qual}")
     lines.append("")
     return lines
 
@@ -266,10 +267,8 @@ def _render_entity(entity: dict, include_stats: bool = True) -> str:
         if val:
             frontmatter[key] = val
     if include_stats:
-        if entity["type"] in shm.SHEET_ENTITY_TYPES and fields.get("sheet"):
+        if entity["type"] in _SHEET_TYPES and fields.get("sheet"):
             frontmatter["sheet"] = fields["sheet"]
-        if entity["type"] in shm.SHEET_ENTITY_TYPES and fields.get("active_effects"):
-            frontmatter["active_effects"] = fields["active_effects"]
         if entity["type"] == "encounter" and fields.get("combat"):
             frontmatter["combat"] = _combat_for_export(fields["combat"])
     frontmatter["created"] = entity["created_at"][:10]
@@ -301,9 +300,9 @@ def _render_entity(entity: dict, include_stats: bool = True) -> str:
             lines.append(f"- **{label}:** {inline_text(val)}")
         lines.append("")
 
-    # Character sheet (adventurer/enemy only, opt-in via include_stats)
-    if include_stats and entity["type"] in shm.SHEET_ENTITY_TYPES:
-        lines.extend(_format_sheet_markdown(entity["type"], fields.get("sheet", {}), fields.get("active_effects", [])))
+    # Character / starship sheet (opt-in via include_stats)
+    if include_stats and entity["type"] in _SHEET_TYPES:
+        lines.extend(_format_sheet_markdown(entity["type"], fields.get("sheet", {})))
 
     # Relationships
     rels = get_relationships(entity["id"])
@@ -387,7 +386,7 @@ def _parse_vault_file(path: Path) -> dict:
         raise ValueError(f"{path}: unknown entity type '{entity_type}'")
 
     fields = {k: v for k, v in frontmatter.items() if k not in _NON_SCHEMA_KEYS}
-    for key in ("sheet", "active_effects", "combat"):
+    for key in ("sheet", "combat"):
         if key in frontmatter:
             fields[key] = frontmatter[key]
 

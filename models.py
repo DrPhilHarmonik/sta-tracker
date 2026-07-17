@@ -46,38 +46,22 @@ ENTITY_ICONS = {
 # type: "text" | "select" | "number"
 ENTITY_SCHEMAS: dict[str, list[tuple]] = {
     "npc": [
-        ("race", "Race", "text", None),
+        ("species", "Species", "text", None),
         ("role", "Role / Title", "text", None),
-        ("alignment", "Alignment", "select", [
-            "Lawful Good", "Neutral Good", "Chaotic Good",
-            "Lawful Neutral", "True Neutral", "Chaotic Neutral",
-            "Lawful Evil", "Neutral Evil", "Chaotic Evil", "Unknown",
-        ]),
         ("status", "Status", "select", ["Alive", "Dead", "Missing", "Unknown"]),
         ("location", "Current Location", "entity_ref", "location"),
     ],
     "adventurer": [
-        ("race", "Race", "text", None),
-        ("class_name", "Class", "text", None),
-        ("level", "Level", "number", None),
+        ("species", "Species", "text", None),
+        ("rank", "Rank", "text", None),
+        ("role", "Role", "text", None),
         ("player_name", "Player Name", "text", None),
-        ("alignment", "Alignment", "select", [
-            "Lawful Good", "Neutral Good", "Chaotic Good",
-            "Lawful Neutral", "True Neutral", "Chaotic Neutral",
-            "Lawful Evil", "Neutral Evil", "Chaotic Evil", "Unknown",
-        ]),
-        ("status", "Status", "select", ["Active", "Retired", "Dead", "Missing"]),
-        ("xp", "XP", "number", None),
-        ("inspiration", "Inspiration", "boolean", None),
+        ("status", "Status", "select", ["Active", "Reserve", "Retired", "Dead", "Missing"]),
     ],
     "enemy": [
-        ("creature_type", "Creature Type", "text", None),
-        ("cr", "Challenge Rating", "text", None),
-        ("alignment", "Alignment", "select", [
-            "Lawful Good", "Neutral Good", "Chaotic Good",
-            "Lawful Neutral", "True Neutral", "Chaotic Neutral",
-            "Lawful Evil", "Neutral Evil", "Chaotic Evil", "Unaligned",
-        ]),
+        ("species", "Species", "text", None),
+        ("kind", "Type", "select", ["Minor NPC", "Notable NPC", "Major NPC"]),
+        ("role", "Role", "text", None),
         ("status", "Status", "select", ["Alive", "Defeated", "Fled", "Unknown"]),
     ],
     "starship": [

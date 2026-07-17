@@ -9,21 +9,16 @@ from pathlib import Path
 
 import db
 import export as exp
-import sheet as shm
+import sta_sheet as sta_mod
 import starship as ship_mod
-import dice
 import combat as cbt
-import effects as fx
-import classes
 from models import ENTITY_TYPES, ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCHEMAS, RELATIONSHIP_TYPES
 
 from screens.common import DismissableScreen, PALETTE, entity_ref_options, tint_border
 from screens.modals import ConfirmScreen
 from screens.sheet import CharacterSheetScreen
 from screens.starship import StarshipSheetScreen
-from screens.roll import RollPickerScreen
 from screens.combat import CombatTrackerScreen
-from screens.effects import EffectsScreen
 from screens.wizard import WizardScreen, WIZARD_ENTITY_TYPES
 
 class EntityListScreen(DismissableScreen):
@@ -270,71 +265,32 @@ def _format_starship_lines(raw_sheet: dict) -> list[str]:
     return lines
 
 
-def _format_sheet_lines(entity_type: str, raw_sheet: dict, raw_effects: list | None = None) -> list[str]:
-    base_sheet = shm.normalize_sheet(raw_sheet)
-    active_effects = fx.normalize_effects(raw_effects)
-    sheet = fx.apply_to_sheet(base_sheet, active_effects)
-    pb = shm.proficiency_bonus(entity_type, sheet)
-
+def _format_sheet_lines(entity_type: str, raw_sheet: dict) -> list[str]:
+    sheet = sta_mod.normalize_sheet(raw_sheet)
     lines = ["", "[bold]Character Sheet:[/]"]
-    ability_parts = [
-        f"{a.upper()} {sheet['abilities'][a]} ({shm.format_modifier(shm.ability_modifier(sheet['abilities'][a]))})"
-        for a in shm.ABILITIES
-    ]
-    lines.append("  " + "  ".join(ability_parts))
-
-    hp_line = f"  AC {sheet['ac']}   HP {sheet['hp_current']}/{sheet['hp_max']}"
-    if sheet["hp_temp"]:
-        hp_line += f" (+{sheet['hp_temp']} temp)"
-    hp_line += f"   Speed {sheet['speed']} ft.   Prof. Bonus {shm.format_modifier(pb)}"
-    lines.append(hp_line)
-
-    if entity_type == "enemy":
-        lines.append(f"  CR {sheet['cr']}   {sheet['creature_type']}".rstrip())
-    else:
-        lines.append(f"  Level {sheet['level']}")
-
-    if sheet["saving_throw_proficiencies"]:
-        saves = ", ".join(
-            f"{a.upper()} {shm.format_modifier(shm.saving_throw_bonus(sheet, a, pb))}"
-            for a in shm.ABILITIES if a in sheet["saving_throw_proficiencies"]
-        )
-        lines.append(f"  Saves: {saves}")
-
-    proficient_skills = [s for s in shm.SKILLS if sheet["skill_proficiencies"].get(s, "none") != "none"]
-    if proficient_skills:
-        skills_str = ", ".join(
-            f"{shm.SKILL_LABELS[s]} {shm.format_modifier(shm.skill_bonus(sheet, s, pb))}"
-            for s in proficient_skills
-        )
-        lines.append(f"  Skills: {skills_str}")
-
-    if sheet["attacks"]:
-        lines.append("  Attacks:")
-        for atk in sheet["attacks"]:
-            bonus = shm.format_modifier(int(atk.get("bonus", 0) or 0))
-            lines.append(f"    {atk.get('name', '?')} {bonus} to hit, {atk.get('damage', '')} {atk.get('damage_type', '')}".rstrip())
-
-    for label, key in (("Resistances", "resistances"), ("Immunities", "immunities"), ("Vulnerabilities", "vulnerabilities")):
-        if sheet[key]:
-            lines.append(f"  {label}: {sheet[key]}")
-
-    if sheet["special_abilities"]:
-        lines.append("  Special Abilities:")
-        for sa in sheet["special_abilities"]:
-            lines.append(f"    {sa.get('name', '?')}: {sa.get('description', '')}")
-
-    for label, key in (("Senses", "senses"), ("Languages", "languages")):
-        if sheet[key]:
-            lines.append(f"  {label}: {sheet[key]}")
-
-    if active_effects:
-        lines.append("  Active Effects:")
-        for effect in active_effects:
-            duration = f"{effect['rounds_remaining']} rounds left" if effect["rounds_remaining"] is not None else "indefinite"
-            modifier = shm.format_modifier(effect["modifier"])
-            lines.append(f"    {effect['source']}: {modifier} {fx.STAT_LABELS[effect['stat']]} ({duration})")
-
+    lines.append("  " + "  ".join(f"{sta_mod.ATTRIBUTE_LABELS[a]} {sheet['attributes'][a]}" for a in sta_mod.ATTRIBUTES))
+    lines.append("  " + "  ".join(f"{sta_mod.DEPARTMENT_LABELS[d]} {sheet['departments'][d]}" for d in sta_mod.DEPARTMENTS))
+    lines.append(
+        f"  Stress {sheet['stress_current']}/{sheet['stress_max']}   "
+        f"Determination {sheet['determination']}   Protection {sheet['protection']}"
+    )
+    profile = [f"{lbl} {sheet[key]}" for lbl, key in (("Species", "species"), ("Rank", "rank"), ("Role", "role")) if sheet[key]]
+    if profile:
+        lines.append("  " + "   ".join(profile))
+    if sheet["focuses"]:
+        lines.append(f"  Focuses: {', '.join(sheet['focuses'])}")
+    if sheet["values"]:
+        lines.append(f"  Values: {', '.join(sheet['values'])}")
+    if sheet["talents"]:
+        lines.append(f"  Talents: {', '.join(sheet['talents'])}")
+    if sheet["weapons"]:
+        lines.append("  Weapons:")
+        for w in sheet["weapons"]:
+            dice_count = sta_mod.weapon_dice(sheet, w)
+            qual = f" [{w['qualities']}]" if w["qualities"] else ""
+            lines.append(f"    {w['name']} — {dice_count}[CD]{qual}")
+    if sheet["injuries"]:
+        lines.append(f"  Injuries: {', '.join(sheet['injuries'])}")
     return lines
 
 
@@ -345,11 +301,9 @@ class EntityDetailScreen(DismissableScreen):
         Binding("r", "add_rel", "Add Relation"),
         Binding("d", "del_rel", "Delete Relation"),
         Binding("c", "open_sheet", "Character Sheet"),
-        Binding("k", "open_roll", "Roll Dice"),
         Binding("h", "make_hostile", "Make Hostile"),
         Binding("y", "make_allied", "Make Allied"),
         Binding("o", "open_combat", "Combat Tracker"),
-        Binding("f", "open_effects", "Effects"),
         Binding("w", "open_session_workflow", "Session Workflow"),
         Binding("a", "add_objective", "Add Objective"),
         Binding("t", "toggle_objective", "Toggle Objective"),
@@ -368,9 +322,7 @@ class EntityDetailScreen(DismissableScreen):
         if not entity:
             return True
         if action == "open_sheet":
-            return entity["type"] in shm.SHEET_ENTITY_TYPES or entity["type"] == "starship"
-        if action in ("open_roll", "open_effects"):
-            return entity["type"] in shm.SHEET_ENTITY_TYPES
+            return entity["type"] in sta_mod.SHEET_ENTITY_TYPES or entity["type"] == "starship"
         if action in ("make_hostile", "make_allied"):
             return entity["type"] == "npc"
         if action == "open_combat":
@@ -406,12 +358,8 @@ class EntityDetailScreen(DismissableScreen):
             return
         tint_border(self.query_one("#detail-scroll"), entity["type"])
         actions = self.query_one("#detail-actions")
-        if entity["type"] in shm.SHEET_ENTITY_TYPES:
-            await actions.mount(
-                Button("Character Sheet", id="btn-sheet", variant="warning"),
-                Button("Roll Dice", id="btn-roll", variant="success"),
-                Button("Effects", id="btn-effects", variant="default"),
-            )
+        if entity["type"] in sta_mod.SHEET_ENTITY_TYPES:
+            await actions.mount(Button("Character Sheet", id="btn-sheet", variant="warning"))
         if entity["type"] == "starship":
             await actions.mount(Button("Ship Sheet", id="btn-sheet", variant="warning"))
         if entity["type"] == "npc":
@@ -450,8 +398,8 @@ class EntityDetailScreen(DismissableScreen):
 
         if entity["type"] == "starship":
             lines.extend(_format_starship_lines(entity["fields"].get("sheet", {})))
-        elif entity["type"] in shm.SHEET_ENTITY_TYPES:
-            lines.extend(_format_sheet_lines(entity["type"], entity["fields"].get("sheet", {}), entity["fields"].get("active_effects", [])))
+        elif entity["type"] in sta_mod.SHEET_ENTITY_TYPES:
+            lines.extend(_format_sheet_lines(entity["type"], entity["fields"].get("sheet", {})))
 
         if rels:
             lines.append("")
@@ -495,16 +443,12 @@ class EntityDetailScreen(DismissableScreen):
             self.dismiss()
         elif event.button.id == "btn-sheet":
             self.action_open_sheet()
-        elif event.button.id == "btn-roll":
-            self.action_open_roll()
         elif event.button.id == "btn-hostile":
             self.action_make_hostile()
         elif event.button.id == "btn-allied":
             self.action_make_allied()
         elif event.button.id == "btn-combat":
             self.action_open_combat()
-        elif event.button.id == "btn-effects":
-            self.action_open_effects()
         elif event.button.id == "btn-session-workflow":
             self.action_open_session_workflow()
         elif event.button.id == "btn-add-objective":
@@ -530,13 +474,8 @@ class EntityDetailScreen(DismissableScreen):
             return
         if entity["type"] == "starship":
             self.app.push_screen(StarshipSheetScreen(self.entity_id), callback=lambda _: self._render_detail())
-        elif entity["type"] in shm.SHEET_ENTITY_TYPES:
+        elif entity["type"] in sta_mod.SHEET_ENTITY_TYPES:
             self.app.push_screen(CharacterSheetScreen(self.entity_id), callback=lambda _: self._render_detail())
-
-    def action_open_roll(self):
-        entity = db.get_entity(self.entity_id)
-        if entity and entity["type"] in shm.SHEET_ENTITY_TYPES:
-            self.app.push_screen(RollPickerScreen(self.entity_id))
 
     def action_make_hostile(self):
         entity = db.get_entity(self.entity_id)
@@ -561,8 +500,7 @@ class EntityDetailScreen(DismissableScreen):
         fields = entity["fields"]
         prefill = {
             "name": f"{entity['name']} (Allied)",
-            "creature_type": fields.get("race", ""),
-            "alignment": fields.get("alignment", ""),
+            "species": fields.get("species", ""),
         }
         self.app.push_screen(
             WizardScreen("enemy", "quick", prefill=prefill, link_to_npc_id=self.entity_id, link_rel_type="allied form of"),
@@ -576,8 +514,7 @@ class EntityDetailScreen(DismissableScreen):
         fields = entity["fields"]
         prefill = {
             "name": f"{entity['name']} (Hostile)",
-            "creature_type": fields.get("race", ""),
-            "alignment": fields.get("alignment", ""),
+            "species": fields.get("species", ""),
         }
         self.app.push_screen(
             WizardScreen("enemy", "quick", prefill=prefill, link_to_npc_id=self.entity_id),
@@ -588,11 +525,6 @@ class EntityDetailScreen(DismissableScreen):
         entity = db.get_entity(self.entity_id)
         if entity and entity["type"] == "encounter":
             self.app.push_screen(CombatTrackerScreen(self.entity_id), callback=lambda _: self._render_detail())
-
-    def action_open_effects(self):
-        entity = db.get_entity(self.entity_id)
-        if entity and entity["type"] in shm.SHEET_ENTITY_TYPES:
-            self.app.push_screen(EffectsScreen(self.entity_id), callback=lambda _: self._render_detail())
 
     def action_open_session_workflow(self):
         entity = db.get_entity(self.entity_id)
@@ -753,22 +685,12 @@ class EntityFormScreen(Screen):
         name, collected_fields, notes = result
         if self.entity:
             # Merge into the existing fields rather than replacing them
-            # wholesale -- this form only edits the flat schema fields, and
-            # a bare replace would silently wipe sheet/active_effects/combat
-            # data that lives alongside them.
+            # wholesale -- this form only edits the flat schema fields, and a
+            # bare replace would silently wipe the sheet/combat data that lives
+            # alongside them. The STA sheet is self-contained (no flat-field
+            # mirroring), so nothing else needs syncing here.
             fields = dict(self.entity["fields"])
             fields.update(collected_fields)
-            if "sheet" in fields:
-                # Keep the sheet's own copies of these in sync with the flat
-                # fields just edited here, so the two never silently drift.
-                if self.type_ == "enemy":
-                    fields["sheet"]["cr"] = fields.get("cr", fields["sheet"].get("cr", "0"))
-                    fields["sheet"]["creature_type"] = fields.get("creature_type", fields["sheet"].get("creature_type", ""))
-                elif "level" in fields:
-                    try:
-                        fields["sheet"]["level"] = int(fields["level"] or 1)
-                    except ValueError:
-                        pass  # validate_fields() will raise its own clear error on save
             db.update_entity(self.entity["id"], name, fields, notes)
             entity_id = self.entity["id"]
         else:

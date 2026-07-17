@@ -34,7 +34,7 @@ async def _open_session_workflow(pilot, app):
 def test_session_workflow_lists_pcs_quests_encounters_npcs_and_notes(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     db.create_entity("session", "Session 1", {"session_number": "1"}, "")
-    db.create_entity("adventurer", "Brynn Ashforge", {"class_name": "Fighter", "level": "2"}, "")
+    db.create_entity("adventurer", "Brynn Ashforge", {"rank": "Lieutenant", "species": "Human"}, "")
     quest_id = db.create_entity("quest", "Find the Moon Key", {
         "status": "Active",
         "objectives": [
@@ -43,7 +43,7 @@ def test_session_workflow_lists_pcs_quests_encounters_npcs_and_notes(monkeypatch
         ],
     }, "")
     db.create_entity("encounter", "Ambush", {"status": "Active"}, "")
-    npc_id = db.create_entity("npc", "Mira Thorn", {"race": "Human"}, "")
+    npc_id = db.create_entity("npc", "Mira Thorn", {"species": "Human"}, "")
     db.create_relationship(npc_id, quest_id, "gave quest", "")
 
     async def scenario():

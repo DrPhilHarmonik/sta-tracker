@@ -161,7 +161,7 @@ class MonsterRefScreen(DismissableScreen):
         entity_id = db.create_entity(
             "enemy",
             self._selected["name"],
-            {"creature_type": self._selected["kind"], "status": "Alive", "sheet": sheet},
+            {"kind": self._selected["kind"], "status": "Alive", "sheet": sheet},
             "",
         )
         self.app.notify(f"Added {self._selected['name']} to the campaign.")

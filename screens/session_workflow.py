@@ -6,6 +6,7 @@ from rich.text import Text
 
 import db
 import session_workflow as wf
+import sta_sheet as sta
 from models import ENTITY_LABELS
 
 from screens.common import DismissableScreen, PALETTE, tint_border
@@ -27,7 +28,6 @@ class SessionWorkflowScreen(DismissableScreen):
             DataTable(id="wf-pcs", cursor_type="row"),
             Horizontal(
                 Button("Character Sheet", id="btn-wf-pc-sheet", variant="warning"),
-                Button("Roll Dice", id="btn-wf-pc-roll", variant="success"),
                 id="wf-pc-actions",
             ),
             Static("Active Quests", classes="workflow-heading"),
@@ -47,10 +47,10 @@ class SessionWorkflowScreen(DismissableScreen):
         self.title = f"Session Workflow — {session['name']}" if session else "Session Workflow"
         tint_border(self.query_one("#session-workflow-scroll"), "session")
         for table_id, columns in (
-            ("wf-pcs", ("Name", "Class", "Level")),
+            ("wf-pcs", ("Name", "Rank", "Species")),
             ("wf-quests", ("Name", "Difficulty", "Objectives")),
             ("wf-encounters", ("Name", "Status", "Location")),
-            ("wf-npcs", ("Name", "Race", "Role")),
+            ("wf-npcs", ("Name", "Species", "Role")),
             ("wf-notes", ("Name", "Type", "Updated")),
         ):
             self.query_one(f"#{table_id}", DataTable).add_columns(*columns)
@@ -58,13 +58,13 @@ class SessionWorkflowScreen(DismissableScreen):
 
     def _load(self):
         self._fill("wf-pcs", wf.player_characters(),
-                    lambda e: (e["fields"].get("class_name", ""), str(e["fields"].get("level", ""))))
+                    lambda e: (self._pc_rank(e), self._pc_species(e)))
         self._fill("wf-quests", wf.active_quests(),
                     lambda e: (e["fields"].get("difficulty", ""), self._objective_progress_text(e)))
         self._fill("wf-encounters", wf.active_encounters(),
                     lambda e: (e["fields"].get("status", ""), e["fields"].get("location", "")))
         self._fill("wf-npcs", wf.notable_npcs(),
-                    lambda e: (e["fields"].get("race", ""), e["fields"].get("role", "")))
+                    lambda e: (e["fields"].get("species", ""), e["fields"].get("role", "")))
         self._fill("wf-notes", wf.recent_notes(),
                     lambda e: (ENTITY_LABELS[e["type"]], e["updated_at"]))
 
@@ -74,6 +74,12 @@ class SessionWorkflowScreen(DismissableScreen):
         for e in entities:
             cols = (Text(e["name"], style=f"bold {PALETTE.get(e['type'], '')}"),) + tuple(extra_cols(e))
             table.add_row(*cols, key=str(e["id"]))
+
+    def _pc_rank(self, entity: dict) -> str:
+        return sta.normalize_sheet(entity["fields"].get("sheet", {}))["rank"]
+
+    def _pc_species(self, entity: dict) -> str:
+        return sta.normalize_sheet(entity["fields"].get("sheet", {}))["species"]
 
     def _objective_progress_text(self, quest: dict) -> str:
         done, total = db.objective_progress(quest["fields"])
@@ -97,20 +103,14 @@ class SessionWorkflowScreen(DismissableScreen):
 
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "btn-wf-pc-sheet":
-            self._open_selected_pc("sheet")
-        elif event.button.id == "btn-wf-pc-roll":
-            self._open_selected_pc("roll")
+            self._open_selected_pc()
 
-    def _open_selected_pc(self, mode: str):
+    def _open_selected_pc(self):
         from screens.sheet import CharacterSheetScreen
-        from screens.roll import RollPickerScreen
 
         table = self.query_one("#wf-pcs", DataTable)
         if table.row_count == 0 or table.cursor_row is None:
             return
         cell_key = table.coordinate_to_cell_key(table.cursor_coordinate)
         entity_id = int(cell_key.row_key.value)
-        if mode == "sheet":
-            self.app.push_screen(CharacterSheetScreen(entity_id), callback=lambda _: self._load())
-        else:
-            self.app.push_screen(RollPickerScreen(entity_id))
+        self.app.push_screen(CharacterSheetScreen(entity_id), callback=lambda _: self._load())

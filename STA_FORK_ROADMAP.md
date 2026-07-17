@@ -292,6 +292,23 @@ for the STA sheet + starship shapes so the Obsidian vault round-trips. Full
 regression pass; screenshot review pass (mirroring the parent's TUI review
 discipline).
 
+**Status: Done. The 5e branch is fully removed and the fork is STA-native end to
+end.** Deleted: `sheet.py`, `races.py`, `classes.py`, `effects.py`,
+`screens/effects.py`, `screens/roll.py`, the D&D-Beyond/CSV importers, the 5e
+dice helpers, and their tests. `db._normalize_sheet_any` is down to two shapes
+(starship / character); `active_effects` support is gone from the DB, export,
+and detail views (Traits on combatants replace it — the effects screen and the
+separate Roll-Dice screen are both retired, since the character/ship sheets
+carry Task and Challenge-Dice rolls inline). `export.py` now emits STA character
+and starship stat blocks (Attributes/Departments/Stress and Systems/Scale/
+Shields) and round-trips them through the vault. `party_overview.py` shows
+Stress/Determination/Focuses/Traits/Injuries instead of HP/AC/spell slots;
+`session_workflow.py` reads Rank/Species. The `models.py` flat schemas are now
+native STA (adventurer: species/rank/role/player; enemy: species/kind/role;
+npc: species/role) with the wizard, adversary library, and make-hostile/allied
+flows updated to match. Vestigial 5e imports across the remaining screens are
+cleaned out. Full suite: **269 tests passing**, app boots and navigates clean.
+
 ---
 
 ## Open questions to resolve before Phase 6

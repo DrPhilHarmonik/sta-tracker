@@ -453,7 +453,7 @@ class WizardScreen(DismissableScreen):
 
         if self.entity_type == "npc":
             fields = {
-                "race": self.data.get("species_text", ""),
+                "species": self.data.get("species_text", ""),
                 "role": self.data["role"],
                 "status": self.data["status"] or "Alive",
                 "location": self.data["location"],
@@ -476,22 +476,21 @@ class WizardScreen(DismissableScreen):
         sheet["determination"] = self.data["determination"]
 
         if self.entity_type == "adventurer":
-            # Thin compat flat fields for the list views; the STA sheet is the
-            # source of truth. (The 5e flat schema keys are reused verbatim
-            # until the flat-schema migration in a later phase.)
+            # Flat fields drive the list views; the STA sheet is the source of
+            # truth and carries the rest.
             flat_fields = {
-                "race": self.data["species"],
-                "class_name": self.data["career"],
+                "species": self.data["species"],
+                "rank": self.data["rank"],
+                "role": self.data["role"],
                 "player_name": self.data["player_name"],
                 "status": "Active",
             }
         else:
             flat_fields = {
-                "creature_type": self.data.get("species") or self.data.get("creature_type", ""),
+                "species": self.data.get("species") or self.data.get("creature_type", ""),
+                "role": self.data["role"],
                 "status": "Alive",
             }
-            if self.data.get("alignment"):
-                flat_fields["alignment"] = self.data["alignment"]
         flat_fields["sheet"] = sheet
         entity_id = db.create_entity(self.entity_type, self.data["name"], flat_fields, "")
 

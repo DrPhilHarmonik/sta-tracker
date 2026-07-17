@@ -178,9 +178,10 @@ def test_advanced_mode_captures_focuses_values_and_profile(monkeypatch, tmp_path
         assert sheet["career"] == "Officer"
         assert sheet["role"] == "Science Officer"
         assert sheet["determination"] == 2
-        # Thin compat flat fields for the list views.
-        assert entity["fields"]["race"] == "Bajoran"
-        assert entity["fields"]["class_name"] == "Officer"
+        # Flat fields for the list views mirror the STA profile.
+        assert entity["fields"]["species"] == "Bajoran"
+        assert entity["fields"]["rank"] == "Lieutenant"
+        assert entity["fields"]["role"] == "Science Officer"
 
     run(scenario)
 

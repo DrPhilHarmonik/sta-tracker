@@ -19,9 +19,9 @@ def _setup(monkeypatch, tmp_path):
 
 
 def _make_enemy(name="Klingon Warrior"):
-    eid = db.create_entity("enemy", name, {"cr": "Notable NPC"}, "")
+    eid = db.create_entity("enemy", name, {"kind": "Notable NPC"}, "")
     db.update_entity(eid, name, {
-        "cr": "Notable NPC",
+        "kind": "Notable NPC",
         "sheet": {
             "attributes": {"control": 9, "daring": 11, "fitness": 11, "insight": 8, "presence": 9, "reason": 8},
             "departments": {"command": 2, "conn": 2, "engineering": 1, "security": 4, "medicine": 1, "science": 1},

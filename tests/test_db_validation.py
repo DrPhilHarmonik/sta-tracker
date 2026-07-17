@@ -42,20 +42,20 @@ def test_create_entity_rejects_invalid_select_value(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
     with pytest.raises(ValueError, match="must be one of"):
-        db.create_entity("npc", "Gareth", {"alignment": "Extremely Good"}, "")
+        db.create_entity("npc", "Gareth", {"status": "Vacationing"}, "")
 
 
 def test_create_entity_rejects_invalid_number_value(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
     with pytest.raises(ValueError, match="must be a number"):
-        db.create_entity("adventurer", "Mira Thorn", {"level": "five"}, "")
+        db.create_entity("starship", "USS Reliant", {"scale": "big"}, "")
 
 
 def test_create_entity_accepts_blank_optional_fields(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
-    entity_id = db.create_entity("npc", "Gareth", {"alignment": "", "role": ""}, "")
+    entity_id = db.create_entity("npc", "Gareth", {"status": "", "role": ""}, "")
     assert db.get_entity(entity_id) is not None
 
 
@@ -66,11 +66,11 @@ def test_create_entity_rejects_malformed_sheet_type(monkeypatch, tmp_path):
         db.create_entity("adventurer", "Mira Thorn", {"sheet": "not a dict"}, "")
 
 
-def test_create_entity_rejects_malformed_active_effects_type(monkeypatch, tmp_path):
+def test_create_entity_rejects_malformed_combat_type(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
-    with pytest.raises(ValueError, match="active_effects'\\] must be a list"):
-        db.create_entity("adventurer", "Mira Thorn", {"active_effects": "not a list"}, "")
+    with pytest.raises(ValueError, match="combat'\\] must be an object"):
+        db.create_entity("encounter", "Brawl", {"combat": "not an object"}, "")
 
 
 def test_quest_objectives_default_to_empty_list(monkeypatch, tmp_path):
@@ -130,11 +130,11 @@ def test_add_and_toggle_objective(monkeypatch, tmp_path):
 def test_create_entity_normalizes_sheet_on_write(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
-    entity_id = db.create_entity("adventurer", "Mira Thorn", {"sheet": {"abilities": {"str": 18}}}, "")
+    entity_id = db.create_entity("adventurer", "Mira Thorn", {"sheet": {"attributes": {"control": 11}}}, "")
     sheet = db.get_entity(entity_id)["fields"]["sheet"]
-    assert sheet["abilities"]["str"] == 18
-    assert sheet["abilities"]["dex"] == 10  # filled in by normalize_sheet
-    assert sheet["hp_max"] == 10  # default
+    assert sheet["attributes"]["control"] == 11
+    assert sheet["attributes"]["daring"] == 8  # filled in by normalize_sheet
+    assert "departments" in sheet and "stress_max" in sheet
 
 
 def test_update_entity_raises_for_missing_id(monkeypatch, tmp_path):
@@ -157,7 +157,7 @@ def test_update_entity_validates_fields_against_the_entitys_own_type(monkeypatch
     db.init_db()
     entity_id = db.create_entity("npc", "Gareth", {}, "")
     with pytest.raises(ValueError, match="Unknown field"):
-        db.update_entity(entity_id, "Gareth", {"cr": "5"}, "")  # cr is an enemy field, not npc
+        db.update_entity(entity_id, "Gareth", {"kind": "Minor NPC"}, "")  # kind is an enemy field, not npc
 
 
 def test_create_relationship_rejects_unknown_rel_type(monkeypatch, tmp_path):
@@ -231,12 +231,12 @@ def test_replace_all_normalizes_sheet_shapes_leniently(monkeypatch, tmp_path):
 
     entities = [{
         "id": 1, "type": "adventurer", "name": "Mira Thorn",
-        "fields": {"deprecated_old_field": "kept as-is", "sheet": {"abilities": {"str": 18}}},
+        "fields": {"deprecated_old_field": "kept as-is", "sheet": {"attributes": {"control": 12}}},
         "notes": "", "created_at": db.now(), "updated_at": db.now(),
     }]
     db.replace_all(entities, [])
 
     restored = db.get_entity(1)
     assert restored["fields"]["deprecated_old_field"] == "kept as-is"
-    assert restored["fields"]["sheet"]["abilities"]["str"] == 18
-    assert restored["fields"]["sheet"]["abilities"]["dex"] == 10
+    assert restored["fields"]["sheet"]["attributes"]["control"] == 12
+    assert restored["fields"]["sheet"]["attributes"]["daring"] == 8

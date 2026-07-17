@@ -14,17 +14,17 @@ def run(scenario):
     asyncio.run(scenario())
 
 
-def test_editing_flat_fields_preserves_sheet_and_active_effects(monkeypatch, tmp_path):
+def test_editing_flat_fields_preserves_sheet(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
-    adv_id = db.create_entity("adventurer", "Test Hero", {"race": "Human", "level": "2"}, "")
+    adv_id = db.create_entity("adventurer", "Test Hero", {"species": "Human", "rank": "Ensign"}, "")
     db.update_entity(adv_id, "Test Hero", {
-        "race": "Human", "level": "2",
+        "species": "Human", "rank": "Ensign",
         "sheet": {
-            "abilities": {"str": 16, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
-            "ac": 18, "hp_max": 30, "hp_current": 30,
+            "attributes": {"control": 11, "daring": 10, "fitness": 10, "insight": 9, "presence": 9, "reason": 8},
+            "departments": {"command": 3, "conn": 2, "engineering": 1, "security": 2, "medicine": 1, "science": 1},
+            "focuses": ["Astrophysics"],
         },
-        "active_effects": [{"source": "Bless", "stat": "cha", "modifier": 1, "rounds_remaining": 8}],
     }, "")
 
     async def scenario():
@@ -42,56 +42,15 @@ def test_editing_flat_fields_preserves_sheet_and_active_effects(monkeypatch, tmp
             detail.action_edit()
             await pilot.pause()
             form = app.screen
-            # change one flat field, like a DM correcting a typo
-            form.query_one("#field-race").value = "Half-Elf"
+            # change one flat field, like a GM correcting a typo
+            form.query_one("#field-rank").value = "Lieutenant"
             form.action_save()
             await pilot.pause()
 
         fields = db.get_entity(adv_id)["fields"]
-        assert fields["race"] == "Half-Elf"
-        assert fields["sheet"]["ac"] == 18
-        assert fields["sheet"]["hp_max"] == 30
-        assert fields["active_effects"][0]["source"] == "Bless"
-
-    run(scenario)
-
-
-def test_editing_flat_level_syncs_into_sheet_level(monkeypatch, tmp_path):
-    """The flat 'level' field (list columns, quick add) and fields['sheet']
-    ['level'] (proficiency bonus math, Character Sheet) used to be two
-    independent copies that only ever matched if both were set via the
-    wizard at creation time. Editing one through the generic form left the
-    other stale."""
-    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
-    db.init_db()
-    adv_id = db.create_entity("adventurer", "Test Hero", {"level": "1"}, "")
-    db.update_entity(adv_id, "Test Hero", {
-        "level": "1",
-        "sheet": {"abilities": {"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10}, "level": 1},
-    }, "")
-
-    async def scenario():
-        app = STAApp()
-        async with app.run_test(size=(120, 50)) as pilot:
-            await pilot.pause()
-            await pilot.press("a")
-            await pilot.pause()
-            table = app.screen.query_one("#entity-table")
-            table.move_cursor(row=0)
-            await pilot.pause()
-            app.screen.action_open_selected()
-            await pilot.pause()
-            detail = app.screen
-            detail.action_edit()
-            await pilot.pause()
-            form = app.screen
-            form.query_one("#field-level").value = "5"
-            form.action_save()
-            await pilot.pause()
-
-        fields = db.get_entity(adv_id)["fields"]
-        assert fields["level"] == "5"
-        assert fields["sheet"]["level"] == 5
+        assert fields["rank"] == "Lieutenant"
+        assert fields["sheet"]["attributes"]["control"] == 11
+        assert fields["sheet"]["focuses"] == ["Astrophysics"]
 
     run(scenario)
 

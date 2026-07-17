@@ -14,7 +14,7 @@ def test_export_vault_writes_entities_relationships_and_index(monkeypatch, tmp_p
     npc_id = db.create_entity(
         "npc",
         "Mira Thorn",
-        {"race": "Human", "role": "Innkeeper"},
+        {"species": "Human", "role": "Innkeeper"},
         "Keeps a ledger behind the bar.",
     )
     quest_id = db.create_entity(
@@ -62,7 +62,7 @@ def test_markdown_export_writes_valid_yaml_for_special_values(monkeypatch, tmp_p
         "npc",
         'Mira "The Thorn": West',
         {
-            "race": "Half-Elf: Moon Court",
+            "species": "Half-Elf: Moon Court",
             "role": 'Keeper of "Old Roads"\nSecret broker',
         },
         "First line\nSecond line",
@@ -83,7 +83,7 @@ def test_markdown_export_writes_valid_yaml_for_special_values(monkeypatch, tmp_p
     frontmatter = yaml.safe_load(text.split("---", 2)[1])
 
     assert frontmatter["name"] == 'Mira "The Thorn": West'
-    assert frontmatter["race"] == "Half-Elf: Moon Court"
+    assert frontmatter["species"] == "Half-Elf: Moon Court"
     assert frontmatter["role"] == 'Keeper of "Old Roads"\nSecret broker'
     assert "- **Role / Title:** Keeper of \"Old Roads\"<br>Secret broker" in text
     assert "[[Inn \\] With \\| Pipes]]" in text
@@ -101,7 +101,7 @@ def test_json_backup_round_trips_entities_and_relationships(monkeypatch, tmp_pat
     npc_id = db.create_entity(
         "npc",
         "Mira Thorn",
-        {"race": "Human", "role": "Innkeeper"},
+        {"species": "Human", "role": "Innkeeper"},
         "Keeps a ledger behind the bar.",
     )
     faction_id = db.create_entity(
@@ -201,11 +201,14 @@ def test_export_vault_includes_stats_by_default(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
 
-    adv_id = db.create_entity("adventurer", "Mira Thorn", {"race": "Half-Elf"}, "")
+    adv_id = db.create_entity("adventurer", "Mira Thorn", {"species": "Vulcan"}, "")
     db.update_entity(adv_id, "Mira Thorn", {
-        "race": "Half-Elf",
-        "sheet": {"abilities": {"str": 12, "dex": 18, "con": 14, "int": 10, "wis": 10, "cha": 10}, "ac": 15},
-        "active_effects": [{"source": "Potion of Speed", "stat": "dex", "modifier": 2, "rounds_remaining": 3}],
+        "species": "Vulcan",
+        "sheet": {
+            "attributes": {"control": 11, "daring": 8, "fitness": 10, "insight": 9, "presence": 8, "reason": 12},
+            "departments": {"command": 2, "conn": 1, "engineering": 2, "security": 2, "medicine": 1, "science": 4},
+            "focuses": ["Astrophysics"],
+        },
     }, "")
 
     output_dir = tmp_path / "vault"
@@ -213,20 +216,19 @@ def test_export_vault_includes_stats_by_default(monkeypatch, tmp_path):
     text = (output_dir / "Adventurer" / "Mira Thorn.md").read_text(encoding="utf-8")
 
     assert "sheet:" in text
-    assert "active_effects:" in text
     assert "## Character Sheet" in text
-    assert "DEX 20 (+5)" in text  # effective (buffed) value shown in prose
-    assert "Potion of Speed" in text
+    assert "Reason 12" in text
+    assert "Astrophysics" in text
 
 
 def test_export_vault_can_exclude_stats(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()
 
-    adv_id = db.create_entity("adventurer", "Mira Thorn", {"race": "Half-Elf"}, "")
+    adv_id = db.create_entity("adventurer", "Mira Thorn", {"species": "Andorian"}, "")
     db.update_entity(adv_id, "Mira Thorn", {
-        "race": "Half-Elf",
-        "sheet": {"abilities": {"str": 14, "dex": 14, "con": 14, "int": 14, "wis": 14, "cha": 14}},
+        "species": "Andorian",
+        "sheet": {"attributes": {"control": 10}, "departments": {"security": 3}},
     }, "")
 
     output_dir = tmp_path / "vault"
@@ -235,27 +237,25 @@ def test_export_vault_can_exclude_stats(monkeypatch, tmp_path):
 
     assert "sheet:" not in text
     assert "## Character Sheet" not in text
-    assert "- **Race:** Half-Elf" in text
+    assert "- **Species:** Andorian" in text
 
 
-def test_vault_round_trips_entities_sheets_effects_and_relationships(monkeypatch, tmp_path):
+def test_vault_round_trips_entities_sheets_and_relationships(monkeypatch, tmp_path):
     source_db = tmp_path / "source.db"
     monkeypatch.setenv("STA_DB_PATH", str(source_db))
     db.init_db()
 
-    adv_id = db.create_entity("adventurer", "Mira Thorn", {"race": "Half-Elf", "class_name": "Rogue"},
-                               "A sharp-eyed rogue.\nSecond line.")
+    adv_id = db.create_entity("adventurer", "Mira Thorn", {"species": "Trill", "rank": "Lieutenant"},
+                               "A sharp-eyed officer.\nSecond line.")
     db.update_entity(adv_id, "Mira Thorn", {
-        "race": "Half-Elf", "class_name": "Rogue",
+        "species": "Trill", "rank": "Lieutenant",
         "sheet": {
-            "abilities": {"str": 12, "dex": 18, "con": 14, "int": 10, "wis": 10, "cha": 10},
-            "ac": 15, "hp_max": 32, "hp_current": 32,
-            "attacks": [{"name": "Shortsword", "bonus": 7, "damage": "1d6+4", "damage_type": "piercing"}],
-            "saving_throw_proficiencies": ["dex"],
-            "skill_proficiencies": {"stealth": "expertise"},
+            "attributes": {"control": 11, "daring": 9, "fitness": 10, "insight": 10, "presence": 8, "reason": 11},
+            "departments": {"command": 2, "conn": 3, "engineering": 1, "security": 3, "medicine": 1, "science": 2},
+            "weapons": [{"name": "Phaser", "damage": 3, "qualities": "Charge"}],
+            "focuses": ["Stealth"],
         },
-        "active_effects": [{"source": "Potion of Speed", "stat": "dex", "modifier": 2, "rounds_remaining": 3}],
-    }, "A sharp-eyed rogue.\nSecond line.")
+    }, "A sharp-eyed officer.\nSecond line.")
     loc_id = db.create_entity("location", "Dockside Tavern", {"location_type": "Inn / Tavern"}, "")
     db.create_relationship(adv_id, loc_id, "lives in", "Has a back room.\nReserved nightly.")
 
@@ -271,10 +271,10 @@ def test_vault_round_trips_entities_sheets_effects_and_relationships(monkeypatch
 
     mira = db.list_entities("adventurer")[0]
     assert mira["name"] == "Mira Thorn"
-    assert mira["notes"] == "A sharp-eyed rogue.\nSecond line."
-    assert mira["fields"]["sheet"]["abilities"]["dex"] == 18  # base value, not the buffed prose value
-    assert mira["fields"]["sheet"]["attacks"][0]["name"] == "Shortsword"
-    assert mira["fields"]["active_effects"][0]["source"] == "Potion of Speed"
+    assert mira["notes"] == "A sharp-eyed officer.\nSecond line."
+    assert mira["fields"]["sheet"]["attributes"]["reason"] == 11
+    assert mira["fields"]["sheet"]["weapons"][0]["name"] == "Phaser"
+    assert mira["fields"]["species"] == "Trill"
 
     rels = db.get_relationships(mira["id"])
     assert len(rels) == 1

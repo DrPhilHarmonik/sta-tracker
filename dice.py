@@ -1,13 +1,10 @@
 """Dice notation parsing/rolling for the STA fork.
 
-Contains three layers:
+Contains two layers:
 
-- A generic dice-notation parser (``roll``) that is system-agnostic and stays.
+- A generic dice-notation parser (``roll``) that is system-agnostic.
 - The Star Trek Adventures 2d20 engine (``roll_task``) and Challenge Dice
   roller (``roll_challenge``) -- the mechanical heart of the fork.
-- Transitional 5e stat-aware helpers (``roll_d20``, ``roll_ability_check``,
-  ...) still consumed by the combat/roll screens until those screens are
-  rewritten for STA (roadmap Phases 4/7). They will be removed then.
 
 Every public roll function accepts an optional ``rng`` (defaults to the
 ``random`` module) so tests can pass a seeded ``random.Random`` instance.
@@ -15,8 +12,6 @@ Every public roll function accepts an optional ``rng`` (defaults to the
 import random
 import re
 from dataclasses import dataclass, field
-
-import sheet as shm
 
 DICE_TERM_RE = re.compile(r"^(\d*)d(\d+)(?:(kh|kl)(\d+))?$", re.IGNORECASE)
 
@@ -84,55 +79,6 @@ def roll(expression: str, rng=random) -> RollResult:
             parts.append(f"{'+' if sign > 0 else '-'} {detail}")
 
     return RollResult(total=total, detail=" ".join(parts) + f" = {total}", rolls=all_rolls)
-
-
-def roll_d20(modifier: int = 0, advantage: bool = False, disadvantage: bool = False, rng=random) -> RollResult:
-    """Roll a single d20, or 2d20 keep best/worst for advantage/disadvantage."""
-    if advantage and disadvantage:
-        advantage = disadvantage = False
-
-    if advantage or disadvantage:
-        a, b = rng.randint(1, 20), rng.randint(1, 20)
-        die = max(a, b) if advantage else min(a, b)
-        mode = "adv" if advantage else "dis"
-        rolls = [a, b]
-        detail = f"d20({a},{b} {mode})"
-    else:
-        die = rng.randint(1, 20)
-        rolls = [die]
-        detail = f"d20({die})"
-
-    total = die + modifier
-    if modifier:
-        detail += f" {'+' if modifier >= 0 else '-'} {abs(modifier)}"
-    detail += f" = {total}"
-    return RollResult(total=total, detail=detail, rolls=rolls)
-
-
-def roll_ability_check(sheet: dict, ability: str, advantage: bool = False, disadvantage: bool = False, rng=random) -> RollResult:
-    mod = shm.ability_modifier(sheet["abilities"][ability])
-    return roll_d20(mod, advantage, disadvantage, rng)
-
-
-def roll_saving_throw(sheet: dict, entity_type: str, ability: str, advantage: bool = False, disadvantage: bool = False, rng=random) -> RollResult:
-    pb = shm.proficiency_bonus(entity_type, sheet)
-    bonus = shm.saving_throw_bonus(sheet, ability, pb)
-    return roll_d20(bonus, advantage, disadvantage, rng)
-
-
-def roll_skill_check(sheet: dict, entity_type: str, skill: str, advantage: bool = False, disadvantage: bool = False, rng=random) -> RollResult:
-    pb = shm.proficiency_bonus(entity_type, sheet)
-    bonus = shm.skill_bonus(sheet, skill, pb)
-    return roll_d20(bonus, advantage, disadvantage, rng)
-
-
-def roll_attack(attack: dict, advantage: bool = False, disadvantage: bool = False, rng=random) -> RollResult:
-    bonus = int(attack.get("bonus", 0) or 0)
-    return roll_d20(bonus, advantage, disadvantage, rng)
-
-
-def roll_damage(attack: dict, rng=random) -> RollResult:
-    return roll(attack.get("damage") or "0", rng=rng)
 
 
 # ---------------------------------------------------------------------------
