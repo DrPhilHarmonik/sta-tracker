@@ -1,17 +1,12 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import Header, Footer, Label, Button, DataTable, Input, Select, TextArea, Static, ListView, ListItem, TabbedContent, TabPane, Switch
-from textual.screen import Screen, ModalScreen
-from textual.containers import Container, Horizontal, ScrollableContainer
-from textual import on
-from rich.text import Text
-from pathlib import Path
+from textual.widgets import Header, Footer, Button, Static
+from textual.screen import Screen
+from textual.containers import Container, Horizontal
 
 import db
-import export as exp
-import combat as cbt
 import campaign_manager as cm
-from models import ENTITY_TYPES, ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCHEMAS, RELATIONSHIP_TYPES
+from models import ENTITY_TYPES, ENTITY_LABELS_PLURAL
 
 from screens.entities import EntityListScreen, GlobalSearchScreen
 from screens.backup import ExportScreen, BackupScreen
@@ -22,7 +17,7 @@ from screens.reference import ReferenceScreen
 from screens.scene import SceneScreen
 from screens.relationships import RelationshipBrowserScreen
 from screens.pools import PoolBar
-from screens.common import DismissableScreen, PALETTE
+from screens.common import PALETTE
 
 class Dashboard(Screen):
     BINDINGS = [

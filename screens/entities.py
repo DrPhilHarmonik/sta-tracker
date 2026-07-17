@@ -1,18 +1,15 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import Header, Footer, Label, Button, DataTable, Input, Select, TextArea, Static, ListView, ListItem, TabbedContent, TabPane, Switch
+from textual.widgets import Header, Footer, Label, Button, DataTable, Input, Select, TextArea, Static, ListView, ListItem
 from textual.screen import Screen, ModalScreen
 from textual.containers import Container, Horizontal, ScrollableContainer
 from textual import on
 from rich.text import Text
-from pathlib import Path
 
 import db
-import export as exp
 import sta_sheet as sta_mod
 import starship as ship_mod
-import combat as cbt
-from models import ENTITY_TYPES, ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCHEMAS, RELATIONSHIP_TYPES
+from models import ENTITY_LABELS, ENTITY_LABELS_PLURAL, ENTITY_SCHEMAS, RELATIONSHIP_TYPES
 
 from screens.common import DismissableScreen, PALETTE, entity_ref_options, tint_border
 from screens.modals import ConfirmScreen

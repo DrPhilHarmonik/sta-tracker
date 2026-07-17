@@ -9,7 +9,6 @@ import starship as ship
 import dice
 import ship_combat as sc
 import scene as scene_lib
-from models import ENTITY_LABELS
 
 from screens.common import DismissableScreen, PALETTE, tint_border
 from screens.pools import PoolBar

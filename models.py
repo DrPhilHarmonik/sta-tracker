@@ -1,6 +1,3 @@
-from dataclasses import dataclass, field
-
-
 ENTITY_TYPES = ["npc", "adventurer", "enemy", "starship", "location", "quest", "faction", "item", "session", "encounter"]
 
 ENTITY_LABELS = {

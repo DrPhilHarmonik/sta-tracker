@@ -516,7 +516,6 @@ class CombatTrackerScreen(DismissableScreen):
         self._persist()
 
     def _next_turn(self):
-        old_round = self.combat["round"]
         self.combat = cbt.next_turn(self.combat)
         current = cbt.current_combatant(self.combat)
         if current:

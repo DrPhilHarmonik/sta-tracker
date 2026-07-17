@@ -5,7 +5,6 @@ any campaign file). Campaign files default to the same directory.
 
 STA_DB_PATH env var bypasses all of this -- the app opens that file directly.
 """
-import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path

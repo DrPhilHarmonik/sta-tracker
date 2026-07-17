@@ -2,7 +2,6 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.widgets import Header, Footer, Label, Button, DataTable, Input, Static
 from textual.containers import Container, Horizontal, ScrollableContainer
-from textual import on
 
 import db
 import campaign_manager as cm
