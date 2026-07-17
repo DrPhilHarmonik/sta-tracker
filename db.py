@@ -9,10 +9,11 @@ import sta_sheet as sta_sheet_mod
 import starship as starship_mod
 import momentum as momentum_mod
 import combat as combat_mod
+import ship_combat as ship_combat_mod
 
 DEFAULT_DB_PATH = Path.home() / ".config" / "sta" / "campaign.db"
 
-SPECIAL_FIELD_KEYS = {"sheet", "combat", "objectives"}
+SPECIAL_FIELD_KEYS = {"sheet", "combat", "ship_combat", "objectives"}
 
 
 def db_path() -> Path:
@@ -152,6 +153,10 @@ def normalize_special_fields(fields: dict, type_: str | None = None) -> dict:
         if not isinstance(fields["combat"], dict):
             raise ValueError("fields['combat'] must be an object")
         fields["combat"] = combat_mod.normalize_combat(fields["combat"])
+    if "ship_combat" in fields:
+        if not isinstance(fields["ship_combat"], dict):
+            raise ValueError("fields['ship_combat'] must be an object")
+        fields["ship_combat"] = ship_combat_mod.normalize_ship_combat(fields["ship_combat"])
     if "objectives" in fields:
         if type_ is not None and type_ != "quest":
             raise ValueError("fields['objectives'] is only valid for quests")
