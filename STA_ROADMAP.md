@@ -116,6 +116,22 @@ sheet type but can't fight.
 **Note:** biggest build in this roadmap; likely splits into 14a (model) / 14b
 (screen) like the character conflict tracker did.
 
+**Status: Done** (split 14a/14b as expected). **14a** — new `ship_combat.py`
+model, parallel to `combat.py`: side-alternating ship turns, a shared range band
+(Close/Medium/Long), per-ship **Power** that refills to the ship's Engines rating
+each round, pure `apply_ship_damage` returning (new shields, overflow), per-ship
+**Breaches** by system, and ship Traits. Stored in an encounter's
+`fields["ship_combat"]` via a new DB special field + normalizer. **14b** — new
+`ShipConflictScreen` (Ships / Conflict / Turn Controls / Log tabs) reached from
+an encounter's detail via **Ship Conflict** / `O`, so one encounter can host a
+personal *or* a ship conflict. Damage flows Resistance (= Scale) → Shields (on
+the ship sheet, like Stress) → Breaches (overflow auto-assigned to a chosen
+system); weapon damage rolls Challenge Dice off the ship sheet and pre-fills the
+apply field; ship Task rolls use System + Department and bank Momentum / add
+Threat like the personal tracker; the Phase-5 `PoolBar` is mounted inline.
+Crew-officer station substitution on the Task roll is a noted follow-up.
+330 tests passing.
+
 ## Phase 15 — Extended Tasks, Directives & scene Traits
 
 **Why:** Rounds out the task system beyond single rolls, and gives the conflict

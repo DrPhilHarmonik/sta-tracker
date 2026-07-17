@@ -20,6 +20,7 @@ from screens.sheet import CharacterSheetScreen
 from screens.starship import StarshipSheetScreen
 from screens.milestone import MilestoneScreen
 from screens.combat import CombatTrackerScreen
+from screens.ship_combat import ShipConflictScreen
 from screens.wizard import WizardScreen, WIZARD_ENTITY_TYPES
 
 class EntityListScreen(DismissableScreen):
@@ -308,6 +309,7 @@ class EntityDetailScreen(DismissableScreen):
         Binding("h", "make_hostile", "Make Hostile"),
         Binding("y", "make_allied", "Make Allied"),
         Binding("o", "open_combat", "Combat Tracker"),
+        Binding("O", "open_ship_combat", "Ship Conflict"),
         Binding("w", "open_session_workflow", "Session Workflow"),
         Binding("a", "add_objective", "Add Objective"),
         Binding("t", "toggle_objective", "Toggle Objective"),
@@ -331,7 +333,7 @@ class EntityDetailScreen(DismissableScreen):
             return entity["type"] == "adventurer"
         if action in ("make_hostile", "make_allied"):
             return entity["type"] == "npc"
-        if action == "open_combat":
+        if action in ("open_combat", "open_ship_combat"):
             return entity["type"] == "encounter"
         if action == "open_session_workflow":
             return entity["type"] == "session"
@@ -376,7 +378,10 @@ class EntityDetailScreen(DismissableScreen):
                 Button("Make Allied", id="btn-allied", variant="success"),
             )
         if entity["type"] == "encounter":
-            await actions.mount(Button("Combat Tracker", id="btn-combat", variant="warning"))
+            await actions.mount(
+                Button("Combat Tracker", id="btn-combat", variant="warning"),
+                Button("Ship Conflict", id="btn-ship-combat", variant="warning"),
+            )
         if entity["type"] == "session":
             await actions.mount(Button("Session Workflow", id="btn-session-workflow", variant="warning"))
         if entity["type"] == "quest":
@@ -459,6 +464,8 @@ class EntityDetailScreen(DismissableScreen):
             self.action_make_allied()
         elif event.button.id == "btn-combat":
             self.action_open_combat()
+        elif event.button.id == "btn-ship-combat":
+            self.action_open_ship_combat()
         elif event.button.id == "btn-session-workflow":
             self.action_open_session_workflow()
         elif event.button.id == "btn-add-objective":
@@ -540,6 +547,11 @@ class EntityDetailScreen(DismissableScreen):
         entity = db.get_entity(self.entity_id)
         if entity and entity["type"] == "encounter":
             self.app.push_screen(CombatTrackerScreen(self.entity_id), callback=lambda _: self._render_detail())
+
+    def action_open_ship_combat(self):
+        entity = db.get_entity(self.entity_id)
+        if entity and entity["type"] == "encounter":
+            self.app.push_screen(ShipConflictScreen(self.entity_id), callback=lambda _: self._render_detail())
 
     def action_open_session_workflow(self):
         entity = db.get_entity(self.entity_id)
