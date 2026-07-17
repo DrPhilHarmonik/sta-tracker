@@ -64,6 +64,10 @@ class EntityListScreen(DismissableScreen):
                 Button("Quick Wizard", id="btn-wizard-quick", variant="success"),
                 Button("Advanced Wizard", id="btn-wizard-advanced", variant="warning"),
             )
+        if self.type_ == "adventurer":
+            await self.query_one("#list-toolbar").mount(Button("Quick Crew", id="btn-quick-crew", variant="default"))
+        if self.type_ == "starship":
+            await self.query_one("#list-toolbar").mount(Button("Spaceframes", id="btn-spaceframes", variant="default"))
         self._load()
 
     def _load(self, search: str = None):
@@ -93,6 +97,10 @@ class EntityListScreen(DismissableScreen):
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "btn-add":
             self.action_add()
+        elif event.button.id == "btn-quick-crew":
+            self.action_quick_crew()
+        elif event.button.id == "btn-spaceframes":
+            self.action_spaceframes()
         elif event.button.id == "btn-wizard-quick":
             self.action_wizard("quick")
         elif event.button.id == "btn-wizard-advanced":
@@ -103,6 +111,14 @@ class EntityListScreen(DismissableScreen):
 
     def action_wizard(self, mode: str):
         self.app.push_screen(WizardScreen(self.type_, mode), callback=lambda _: self._load())
+
+    def action_quick_crew(self):
+        from screens.quick_crew import QuickCrewScreen
+        self.app.push_screen(QuickCrewScreen(), callback=lambda _: self._load())
+
+    def action_spaceframes(self):
+        from screens.spaceframe import SpaceframeScreen
+        self.app.push_screen(SpaceframeScreen(), callback=lambda _: self._load())
 
     def action_delete(self):
         table = self.query_one(DataTable)

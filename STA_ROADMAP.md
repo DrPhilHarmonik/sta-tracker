@@ -163,6 +163,26 @@ passing.
 - A template-driven starship builder: pick a saved spaceframe template, get its
   Systems/Scale spread pre-filled on a new starship.
 
+**Status: Done.** New `supporting.py` builds a Supporting Character's STA sheet
+(a lighter base spread with the species' fixed Attribute bonuses, optional Focus
+and role); `QuickCrewScreen` (one-step form, "Quick Crew" on the Adventurers
+list) creates one and drops you on its sheet. New `spaceframes.py` is a
+user-authored spaceframe library (ships empty, `save`/`from_entity`/`build_sheet`
+mirroring `adversaries.py`); `SpaceframeScreen` ("Spaceframes" on the Starships
+list) snapshots a campaign ship into a reusable frame and builds new ships from
+saved frames (recomputing Shields from the frame's Structure). 360 tests
+passing.
+
+---
+
+## All forward phases (11–16) complete
+
+Phases 11–16 are shipped. The tracker now covers the full STA 2e table loop:
+Momentum/Threat + Determination (invoked via Values), Milestone advancement,
+self-populating Talent/Focus libraries, personal *and* starship conflict
+tracking, Extended Tasks with Directives/scene Traits, and one-step Supporting
+Characters plus a spaceframe builder. 360 tests passing.
+
 ## Later / optional
 
 - Stardate campaign timeline & session-log export; Reputation/Reprimand between
