@@ -7,6 +7,7 @@ from textual import on
 import db
 import starship as ship
 import dice
+import momentum as momentum_mod
 import ship_combat as sc
 import scene as scene_lib
 
@@ -14,6 +15,10 @@ from screens.common import DismissableScreen, PALETTE, tint_border
 from screens.pools import PoolBar
 
 INFINITY = chr(0x221e)
+
+BONUS_DICE_OPTIONS = [("2 dice (base)", "0"), ("3 dice", "1"), ("4 dice", "2"), ("5 dice", "3")]
+COMP_RANGE_OPTIONS = [("Comp. on 20", "1"), ("on 19-20", "2"), ("on 18-20", "3")]
+MOMENTUM_SPEND_OPTIONS = [(label, f"{label}|{cost}") for label, cost in momentum_mod.MOMENTUM_SPENDS]
 
 
 class ShipConflictScreen(DismissableScreen):
@@ -124,8 +129,19 @@ class ShipConflictScreen(DismissableScreen):
                 Label("Difficulty"), Input(value="2", id="ship-task-difficulty", classes="stat-input"),
                 id="ship-task-row",
             ),
+            Horizontal(
+                Label("Dice"), Select(BONUS_DICE_OPTIONS, value="0", id="ship-task-bonus-dice", allow_blank=False),
+                Label("Complication"), Select(COMP_RANGE_OPTIONS, value="1", id="ship-task-comp-range", allow_blank=False),
+                id="ship-task-dice-row",
+            ),
             Button("Roll Task", id="btn-ship-roll-task", variant="primary"),
             Static("Pick an acting ship, then roll.", id="ship-task-result"),
+            Static("[bold]Spend Momentum[/]"),
+            Horizontal(
+                Select(MOMENTUM_SPEND_OPTIONS, value=MOMENTUM_SPEND_OPTIONS[0][1], id="ship-momentum-spend", allow_blank=False),
+                Button("Spend", id="btn-ship-momentum-spend"),
+                id="ship-momentum-spend-row",
+            ),
             Static("[bold]Weapon Damage[/]"),
             Select([], id="ship-weapon", prompt="Choose weapon..."),
             Button("Roll Damage ([CD])", id="btn-ship-roll-damage", variant="warning"),
@@ -342,13 +358,27 @@ class ShipConflictScreen(DismissableScreen):
             difficulty = max(0, int(self.query_one("#ship-task-difficulty", Input).value.strip() or 0))
         except ValueError:
             difficulty = 2
+        bonus = int(str(self.query_one("#ship-task-bonus-dice", Select).value) or 0)
+        comp_range = int(str(self.query_one("#ship-task-comp-range", Select).value) or 1)
         result = dice.roll_task(
             attribute=sheet["systems"][sys_key],
             department=sheet["departments"][dept_key],
             difficulty=difficulty,
+            dice=2 + bonus,
+            complication_range=comp_range,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
         detail = f"{entity['name']}: {result.detail}"
+        if bonus > 0:
+            pools = db.get_pools()
+            new_m, new_t, paid, credited = momentum_mod.pay_for_bonus_dice(
+                pools["momentum"], pools["threat"], bonus
+            )
+            db.set_pools(new_m, new_t)
+            self._refresh_pool_bar()
+            cost_bits = [b for b in (f"spent {paid} Momentum" if paid else "", f"+{credited} Threat" if credited else "") if b]
+            detail += f"  --  bought {bonus} d20 ({', '.join(cost_bits) or 'free'})"
+            self._log(f"{entity['name']} bought {bonus} d20 for the Task")
         if result.momentum > 0:
             pools = db.adjust_momentum(result.momentum)
             detail += f"  --  +{result.momentum} Momentum (pool {pools['momentum']})"
@@ -417,6 +447,24 @@ class ShipConflictScreen(DismissableScreen):
             self.query_one("#ship-combat-pool-bar", PoolBar).refresh_pools()
         except Exception:
             pass
+
+    def _spend_momentum(self):
+        """Debit a common Immediate spend from the shared Momentum pool, logged."""
+        raw = str(self.query_one("#ship-momentum-spend", Select).value)
+        label, _, cost_str = raw.partition("|")
+        cost = int(cost_str or 0)
+        pools = db.get_pools()
+        if pools["momentum"] < cost:
+            self.query_one("#ship-task-result", Static).update(
+                f"[#ff5370]Not enough Momentum for {label} (need {cost}, have {pools['momentum']})[/]"
+            )
+            return
+        pools = db.adjust_momentum(-cost)
+        self._refresh_pool_bar()
+        self.query_one("#ship-task-result", Static).update(
+            f"[#c3e88d]Spent {cost} Momentum on {label} (pool {pools['momentum']})[/]"
+        )
+        self._log(f"Spent {cost} Momentum: {label}")
 
     # -- traits -----------------------------------------------------------
 
@@ -502,6 +550,8 @@ class ShipConflictScreen(DismissableScreen):
             self._spend_power()
         elif bid == "btn-ship-roll-task":
             self._roll_task()
+        elif bid == "btn-ship-momentum-spend":
+            self._spend_momentum()
         elif bid == "btn-ship-roll-damage":
             self._roll_damage()
         elif bid == "btn-ship-apply-damage":

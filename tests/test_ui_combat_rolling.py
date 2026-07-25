@@ -126,6 +126,75 @@ def test_roll_damage_prefills_stress_amount_for_one_click_apply(monkeypatch, tmp
     run(scenario)
 
 
+def test_buying_dice_debits_the_momentum_pool(monkeypatch, tmp_path):
+    pc_id, enemy_id = _make_combat(monkeypatch, tmp_path)
+    db.set_pools(6, 0)  # plenty of Momentum
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open_combat_tracker(pilot, app)
+            await _add_both(cs, pilot, pc_id, enemy_id)
+            cs.query_one("#btn-start-encounter").press()
+            await pilot.pause()
+            cs.query_one("#task-bonus-dice").value = "2"  # buy 2 dice, cost 3
+            cs.query_one("#btn-roll-task").press()
+            await pilot.pause()
+            # The roll may also bank Momentum after the buy, so assert on the
+            # deterministic buy report rather than the net pool.
+            result = str(cs.query_one("#task-result").content)
+            assert "bought 2 d20" in result
+            assert "spent 3 Momentum" in result
+
+    run(scenario)
+
+
+def test_buying_dice_on_credit_adds_threat(monkeypatch, tmp_path):
+    pc_id, enemy_id = _make_combat(monkeypatch, tmp_path)
+    db.set_pools(1, 0)  # only 1 Momentum
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open_combat_tracker(pilot, app)
+            await _add_both(cs, pilot, pc_id, enemy_id)
+            cs.query_one("#btn-start-encounter").press()
+            await pilot.pause()
+            cs.query_one("#task-bonus-dice").value = "3"  # cost 6: spend 1, credit 5 Threat
+            cs.query_one("#btn-roll-task").press()
+            await pilot.pause()
+            # Buy accounting is reported deterministically (the roll's own
+            # Momentum/Threat banking then happens on top).
+            result = str(cs.query_one("#task-result").content)
+            assert "spent 1 Momentum" in result
+            assert "+5 Threat" in result
+
+    run(scenario)
+
+
+def test_spend_momentum_menu_debits_pool(monkeypatch, tmp_path):
+    pc_id, enemy_id = _make_combat(monkeypatch, tmp_path)
+    db.set_pools(4, 0)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open_combat_tracker(pilot, app)
+            await _add_both(cs, pilot, pc_id, enemy_id)
+            cs.query_one("#btn-start-encounter").press()
+            await pilot.pause()
+            # first spend option is "Obtain Information" (cost 1)
+            cs.query_one("#btn-momentum-spend").press()
+            await pilot.pause()
+            assert db.get_pools()["momentum"] == 3
+            assert "Spent 1 Momentum" in str(cs.query_one("#task-result").content)
+
+    run(scenario)
+
+
 def test_next_turn_switches_actor_to_the_other_side(monkeypatch, tmp_path):
     pc_id, enemy_id = _make_combat(monkeypatch, tmp_path)
 

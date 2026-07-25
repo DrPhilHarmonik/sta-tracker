@@ -8,6 +8,7 @@ import db
 import export as exp
 import sta_sheet as sta
 import dice
+import momentum as momentum_mod
 import talents as talents_lib
 import focuses as focuses_lib
 
@@ -15,6 +16,12 @@ from screens.common import tint_border
 
 # Bonus d20s bought with Momentum/Threat, on top of the base 2.
 BONUS_DICE_OPTIONS = [("2 dice (base)", "0"), ("3 dice", "1"), ("4 dice", "2"), ("5 dice", "3")]
+
+# How many high faces trigger a Complication (feeds dice.roll_task).
+COMP_RANGE_OPTIONS = [("Complication on 20", "1"), ("on 19-20", "2"), ("on 18-20", "3")]
+
+# Common Immediate Momentum spends, as picker options (label -> "label|cost").
+MOMENTUM_SPEND_OPTIONS = [(label, f"{label}|{cost}") for label, cost in momentum_mod.MOMENTUM_SPENDS]
 
 
 class CharacterSheetScreen(Screen):
@@ -213,7 +220,8 @@ class CharacterSheetScreen(Screen):
             Horizontal(
                 Vertical(Label("Difficulty"), Input(value="1", id="task-difficulty", classes="stat-input")),
                 Vertical(Label("Focus"), Select([("(no focus)", "")], value="", id="task-focus", allow_blank=False)),
-                Vertical(Label("Dice"), Select(BONUS_DICE_OPTIONS, value="0", id="task-bonus-dice", allow_blank=False)),
+                Vertical(Label("Dice (bought)"), Select(BONUS_DICE_OPTIONS, value="0", id="task-bonus-dice", allow_blank=False)),
+                Vertical(Label("Complication"), Select(COMP_RANGE_OPTIONS, value="1", id="task-comp-range", allow_blank=False)),
                 id="task-row2",
             ),
             Static("[bold]Values & Determination[/]  (invoke a Value to spend Determination for a bonus die)"),
@@ -224,8 +232,19 @@ class CharacterSheetScreen(Screen):
                 id="task-row3",
             ),
             Static("", id="determination-readout"),
-            Button("Roll Task", id="btn-roll-task", variant="primary"),
+            Horizontal(
+                Button("Roll Task", id="btn-roll-task", variant="primary"),
+                Button("Repeat Task", id="btn-repeat-task"),
+                id="task-roll-actions",
+            ),
             Static("", id="task-result"),
+            Static("[bold]Spend Momentum[/]  (Immediate spends — debits the group pool)", classes="section-head"),
+            Horizontal(
+                Select(MOMENTUM_SPEND_OPTIONS, value=MOMENTUM_SPEND_OPTIONS[0][1], id="momentum-spend", allow_blank=False),
+                Button("Spend", id="btn-momentum-spend"),
+                id="momentum-spend-row",
+            ),
+            Static("", id="momentum-spend-result"),
             Static("[bold]Challenge Dice[/]", classes="section-head"),
             Horizontal(
                 Vertical(Label("Number of [CD]"), Input(value="1", id="cd-count", classes="stat-input")),
@@ -416,6 +435,7 @@ class CharacterSheetScreen(Screen):
         focus_value = self.query_one("#task-focus", Select).value
         focus = bool(focus_value) and focus_value is not Select.BLANK
         bonus = int(str(self.query_one("#task-bonus-dice", Select).value) or 0)
+        comp_range = int(str(self.query_one("#task-comp-range", Select).value) or 1)
 
         # Invoking a Value spends 1 Determination for an automatic bonus success.
         invoke = self.query_one("#task-invoke", Switch).value
@@ -429,10 +449,25 @@ class CharacterSheetScreen(Screen):
             difficulty=max(0, difficulty),
             focus=focus,
             dice=2 + bonus,
+            complication_range=comp_range,
             determination=spend,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
         detail = result.detail
+        # Bought d20s are paid for from the shared pools: Momentum first, then
+        # any shortfall bought on credit by adding Threat (see momentum.py).
+        if bonus > 0:
+            pools = db.get_pools()
+            new_m, new_t, paid, credited = momentum_mod.pay_for_bonus_dice(
+                pools["momentum"], pools["threat"], bonus
+            )
+            db.set_pools(new_m, new_t)
+            cost_bits = []
+            if paid:
+                cost_bits.append(f"spent {paid} Momentum")
+            if credited:
+                cost_bits.append(f"+{credited} Threat")
+            detail += f"  --  bought {bonus} d20 ({', '.join(cost_bits) or 'free'})"
         if spend:
             new_det = sta.adjust_determination(det_current, -1)
             self.query_one("#sta-determination", Input).value = str(new_det)
@@ -467,6 +502,19 @@ class CharacterSheetScreen(Screen):
         result = dice.roll_challenge(max(0, count))
         self.query_one("#cd-result", Static).update(result.detail)
 
+    def _spend_momentum(self):
+        """Debit a common Immediate spend from the shared Momentum pool."""
+        raw = str(self.query_one("#momentum-spend", Select).value)
+        label, _, cost_str = raw.partition("|")
+        cost = int(cost_str or 0)
+        pools = db.get_pools()
+        readout = self.query_one("#momentum-spend-result", Static)
+        if pools["momentum"] < cost:
+            readout.update(f"[#ff5370]Not enough Momentum for {label} (need {cost}, have {pools['momentum']})[/]")
+            return
+        pools = db.adjust_momentum(-cost)
+        readout.update(f"[#c3e88d]Spent {cost} Momentum on {label} (pool {pools['momentum']})[/]")
+
     def action_save(self):
         sheet = self._collect_sheet_from_widgets()
         entity = db.get_entity(self.entity_id)
@@ -498,6 +546,10 @@ class CharacterSheetScreen(Screen):
             self._refresh_weapons_list()
         elif bid == "btn-roll-task":
             self._do_roll_task()
+        elif bid == "btn-repeat-task":
+            self._do_roll_task()
+        elif bid == "btn-momentum-spend":
+            self._spend_momentum()
         elif bid == "btn-challenge-value":
             self._challenge_value()
         elif bid == "btn-roll-cd":

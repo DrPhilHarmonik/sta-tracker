@@ -258,7 +258,17 @@ the metacurrency economy into inline affordances on the roll itself.
 **Non-goals:** no change to the pure `roll_task` result shape; this is spend
 accounting + UI on top of the existing engine and pools.
 
-**Status: Planned.**
+**Status: Done.** New pure `momentum` helpers: `bonus_dice_cost` (escalating
+1/3/6 for 1–3 bought dice) and `pay_for_bonus_dice` (spend Momentum first, buy
+the shortfall on credit by adding Threat), plus a `MOMENTUM_SPENDS` reminder
+list. All three roll surfaces — the character sheet Task Roll and both conflict
+trackers — gained a **Complication-range** preset (1 / 2 / 3, feeding
+`roll_task`'s existing parameter), a **bought-dice** selector that debits the
+pools through `db.get_pools`/`set_pools` and reports the cost, and a **Spend
+Momentum** picker of common Immediate spends that debits the pool (and logs, in
+the trackers). The character sheet also gained a **Repeat Task** button (keep
+the pool — re-roll with the same selectors). Reminder-only: nothing is enforced.
+393 tests passing.
 
 ### Phase 19 — Ship crew stations & officer substitution
 

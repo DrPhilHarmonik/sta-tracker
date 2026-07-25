@@ -7,6 +7,7 @@ from textual import on
 import db
 import sta_sheet as sta
 import dice
+import momentum as momentum_mod
 import combat as cbt
 import conditions as cnd
 import scene as scene_lib
@@ -17,6 +18,11 @@ from screens.pools import PoolBar
 from screens.wizard import WizardScreen
 
 INFINITY = chr(0x221e)
+
+# Bought d20s and Complication-range presets, shared shape with the sheet.
+BONUS_DICE_OPTIONS = [("2 dice (base)", "0"), ("3 dice", "1"), ("4 dice", "2"), ("5 dice", "3")]
+COMP_RANGE_OPTIONS = [("Comp. on 20", "1"), ("on 19-20", "2"), ("on 18-20", "3")]
+MOMENTUM_SPEND_OPTIONS = [(label, f"{label}|{cost}") for label, cost in momentum_mod.MOMENTUM_SPENDS]
 
 
 class CombatTrackerScreen(DismissableScreen):
@@ -126,11 +132,22 @@ class CombatTrackerScreen(DismissableScreen):
                 id="task-params",
             ),
             Horizontal(
+                Label("Dice"), Select(BONUS_DICE_OPTIONS, value="0", id="task-bonus-dice", allow_blank=False),
+                Label("Complication"), Select(COMP_RANGE_OPTIONS, value="1", id="task-comp-range", allow_blank=False),
+                id="task-dice-params",
+            ),
+            Horizontal(
                 Button("Roll Task (2d20)", id="btn-roll-task", variant="primary"),
                 Button("Challenge Value (+1 Det)", id="btn-combat-challenge-value"),
                 id="task-actions",
             ),
             Static("Pick a character, set the Task, then roll.", id="task-result"),
+            Static("[bold]Spend Momentum[/]"),
+            Horizontal(
+                Select(MOMENTUM_SPEND_OPTIONS, value=MOMENTUM_SPEND_OPTIONS[0][1], id="momentum-spend", allow_blank=False),
+                Button("Spend", id="btn-momentum-spend"),
+                id="momentum-spend-row",
+            ),
             Static("[bold]Weapon Damage[/]"),
             Select([], id="sel-weapon", prompt="Choose weapon..."),
             Button("Roll Damage ([CD])", id="btn-roll-damage", variant="warning"),
@@ -320,6 +337,8 @@ class CombatTrackerScreen(DismissableScreen):
         except ValueError:
             difficulty = 2
         focus = self.query_one("#task-focus", Switch).value
+        bonus = int(str(self.query_one("#task-bonus-dice", Select).value) or 0)
+        comp_range = int(str(self.query_one("#task-comp-range", Select).value) or 1)
 
         # Invoking a Value spends 1 Determination from the acting character's
         # sheet for an automatic bonus success.
@@ -331,10 +350,24 @@ class CombatTrackerScreen(DismissableScreen):
             department=sheet["departments"][dept],
             difficulty=difficulty,
             focus=focus,
+            dice=2 + bonus,
+            complication_range=comp_range,
             determination=spend,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
         detail = f"{entity['name']}: {result.detail}"
+        # Bought d20s are paid from the shared pools (Momentum first, shortfall
+        # credited to Threat).
+        if bonus > 0:
+            pools = db.get_pools()
+            new_m, new_t, paid, credited = momentum_mod.pay_for_bonus_dice(
+                pools["momentum"], pools["threat"], bonus
+            )
+            db.set_pools(new_m, new_t)
+            self._refresh_pool_bar()
+            cost_bits = [b for b in (f"spent {paid} Momentum" if paid else "", f"+{credited} Threat" if credited else "") if b]
+            detail += f"  --  bought {bonus} d20 ({', '.join(cost_bits) or 'free'})"
+            self._log(f"{entity['name']} bought {bonus} d20 for the Task")
         if spend:
             self._set_determination(entity, sta.adjust_determination(sheet["determination"], -1))
             self.query_one("#task-invoke", Switch).value = False
@@ -399,6 +432,24 @@ class CombatTrackerScreen(DismissableScreen):
             self.query_one("#combat-pool-bar", PoolBar).refresh_pools()
         except Exception:
             pass
+
+    def _spend_momentum(self):
+        """Debit a common Immediate spend from the shared Momentum pool, logged."""
+        raw = str(self.query_one("#momentum-spend", Select).value)
+        label, _, cost_str = raw.partition("|")
+        cost = int(cost_str or 0)
+        pools = db.get_pools()
+        if pools["momentum"] < cost:
+            self.query_one("#task-result", Static).update(
+                f"[#ff5370]Not enough Momentum for {label} (need {cost}, have {pools['momentum']})[/]"
+            )
+            return
+        pools = db.adjust_momentum(-cost)
+        self._refresh_pool_bar()
+        self.query_one("#task-result", Static).update(
+            f"[#c3e88d]Spent {cost} Momentum on {label} (pool {pools['momentum']})[/]"
+        )
+        self._log(f"Spent {cost} Momentum: {label}")
 
     # -- stress -----------------------------------------------------------
 
@@ -549,6 +600,8 @@ class CombatTrackerScreen(DismissableScreen):
             self._roll_task()
         elif bid == "btn-combat-challenge-value":
             self._challenge_value()
+        elif bid == "btn-momentum-spend":
+            self._spend_momentum()
         elif bid == "btn-roll-damage":
             self._roll_damage()
         elif bid == "btn-damage":

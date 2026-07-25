@@ -78,6 +78,83 @@ def test_task_roll_produces_a_result(monkeypatch, tmp_path):
     run(scenario)
 
 
+def test_buying_dice_debits_momentum_pool_on_sheet_roll(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+    db.set_pools(6, 0)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            screen.query_one("#task-difficulty").value = "1"
+            screen.query_one("#task-bonus-dice").value = "1"  # buy 1 die, cost 1
+            screen.query_one("#btn-roll-task").press()
+            await pilot.pause()
+            # cost 1 spent; the roll may also bank Momentum on success, so assert
+            # the buy was charged relative to whatever the roll then banks.
+            result = str(screen.query_one("#task-result").content)
+            assert "bought 1 d20" in result
+            assert "spent 1 Momentum" in result
+
+    run(scenario)
+
+
+def test_complication_range_preset_flows_into_the_roll(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            # widest complication band; the Select carries the value through
+            screen.query_one("#task-comp-range").value = "3"
+            assert screen.query_one("#task-comp-range").value == "3"
+            screen.query_one("#btn-roll-task").press()
+            await pilot.pause()
+            assert "vs Diff" in str(screen.query_one("#task-result").content)
+
+    run(scenario)
+
+
+def test_spend_momentum_menu_on_sheet(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+    db.set_pools(3, 0)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            screen.query_one("#btn-momentum-spend").press()  # Obtain Information, cost 1
+            await pilot.pause()
+            assert db.get_pools()["momentum"] == 2
+            assert "Spent 1 Momentum" in str(screen.query_one("#momentum-spend-result").content)
+
+    run(scenario)
+
+
+def test_repeat_task_button_rolls_again(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = db.create_entity("adventurer", "Kai Vantar", {}, "")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_sheet(pilot, app, eid)
+            screen.query_one("#task-difficulty").value = "1"
+            screen.query_one("#btn-repeat-task").press()
+            await pilot.pause()
+            assert "vs Diff 1" in str(screen.query_one("#task-result").content)
+
+    run(scenario)
+
+
 def test_challenge_dice_roll_produces_a_result(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     eid = db.create_entity("adventurer", "Kai Vantar", {}, "")

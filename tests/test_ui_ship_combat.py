@@ -91,6 +91,48 @@ def test_spend_power_reduces_the_acting_ships_pool(monkeypatch, tmp_path):
     run(scenario)
 
 
+def test_ship_buying_dice_debits_momentum_pool(monkeypatch, tmp_path):
+    crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
+    db.set_pools(6, 0)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open(pilot, app, enc)
+            await _add_both(cs, pilot, crew_id, adv_id)
+            cs.query_one("#btn-ship-start").press()
+            await pilot.pause()
+            cs.query_one("#ship-task-bonus-dice", Select).value = "2"  # cost 3
+            cs.query_one("#btn-ship-roll-task").press()
+            await pilot.pause()
+            # The ship roll may bank Momentum after the buy; assert the buy report.
+            result = str(cs.query_one("#ship-task-result").content)
+            assert "bought 2 d20" in result
+            assert "spent 3 Momentum" in result
+
+    run(scenario)
+
+
+def test_ship_spend_momentum_menu_debits_pool(monkeypatch, tmp_path):
+    crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
+    db.set_pools(2, 0)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open(pilot, app, enc)
+            await _add_both(cs, pilot, crew_id, adv_id)
+            cs.query_one("#btn-ship-start").press()
+            await pilot.pause()
+            cs.query_one("#btn-ship-momentum-spend").press()  # Obtain Information, cost 1
+            await pilot.pause()
+            assert db.get_pools()["momentum"] == 1
+
+    run(scenario)
+
+
 def test_weapon_damage_prefills_and_applying_reduces_target_shields(monkeypatch, tmp_path):
     crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
 

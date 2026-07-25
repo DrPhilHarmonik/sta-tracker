@@ -23,6 +23,34 @@ def test_seed_threat_is_twice_the_players():
     assert momentum.seed_threat(-1) == 0
 
 
+# -- buying bonus d20s --------------------------------------------------------
+
+def test_bonus_dice_cost_escalates():
+    assert momentum.bonus_dice_cost(0) == 0
+    assert momentum.bonus_dice_cost(1) == 1
+    assert momentum.bonus_dice_cost(2) == 3
+    assert momentum.bonus_dice_cost(3) == 6
+    # never more than 3 dice can be bought
+    assert momentum.bonus_dice_cost(9) == 6
+    assert momentum.bonus_dice_cost(-1) == 0
+
+
+def test_pay_for_bonus_dice_spends_momentum_first():
+    # 5 Momentum available, buy 2 dice (cost 3): all from Momentum.
+    new_m, new_t, spent, credited = momentum.pay_for_bonus_dice(5, 1, 2)
+    assert (new_m, new_t, spent, credited) == (2, 1, 3, 0)
+
+
+def test_pay_for_bonus_dice_credits_threat_on_shortfall():
+    # 1 Momentum available, buy 3 dice (cost 6): spend 1, add 5 to Threat.
+    new_m, new_t, spent, credited = momentum.pay_for_bonus_dice(1, 2, 3)
+    assert (new_m, new_t, spent, credited) == (0, 7, 1, 5)
+
+
+def test_pay_for_bonus_dice_zero_is_free():
+    assert momentum.pay_for_bonus_dice(4, 4, 0) == (4, 4, 0, 0)
+
+
 # -- campaign-state persistence -----------------------------------------------
 
 def _fresh(monkeypatch, tmp_path):
