@@ -124,3 +124,38 @@ def test_end_of_mission_applies_both_deltas():
     assert adv.end_of_mission(4, 1, 2, 1) == (6, 2)
     # Reputation can fall, Reprimands never go negative
     assert adv.end_of_mission(1, 0, -5, -5) == (0, 0)
+
+
+def test_reputation_standing_climbs_the_ladder():
+    assert adv.reputation_standing(0) == "Untested"
+    assert adv.reputation_standing(3) == "Untested"
+    assert adv.reputation_standing(4) == "Trusted"
+    assert adv.reputation_standing(8) == "Respected"
+    assert adv.reputation_standing(12) == "Distinguished"
+    assert adv.reputation_standing(16) == "Decorated"
+    assert adv.reputation_standing(sta.REPUTATION_MAX) == "Legendary"
+
+
+def test_reputation_standing_covers_whole_range():
+    # every reachable score returns some label (no gap or crash)
+    labels = {adv.reputation_standing(r) for r in range(0, sta.REPUTATION_MAX + 1)}
+    assert labels == {"Untested", "Trusted", "Respected", "Distinguished", "Decorated", "Legendary"}
+
+
+def test_mission_reputation_change_success_grants_one():
+    assert adv.mission_reputation_change(succeeded=True) == (1, 0)
+
+
+def test_mission_reputation_change_reprimands_cancel_the_gain():
+    # a clean success is +1; one reprimand nets 0 and still accrues the reprimand
+    assert adv.mission_reputation_change(succeeded=True, reprimands_gained=1) == (0, 1)
+    assert adv.mission_reputation_change(succeeded=True, reprimands_gained=2) == (-1, 2)
+
+
+def test_mission_reputation_change_failure_grants_nothing():
+    assert adv.mission_reputation_change(succeeded=False) == (0, 0)
+    assert adv.mission_reputation_change(succeeded=False, reprimands_gained=1) == (-1, 1)
+
+
+def test_mission_reputation_change_negative_reprimands_floored():
+    assert adv.mission_reputation_change(succeeded=True, reprimands_gained=-3) == (1, 0)

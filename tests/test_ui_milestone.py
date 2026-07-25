@@ -150,6 +150,52 @@ def test_end_of_mission_updates_reputation_and_reprimands(monkeypatch, tmp_path)
     run(scenario)
 
 
+def test_propose_from_mission_fills_deltas_then_applies(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = _make_pc()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_milestones(pilot, app, eid)
+            # a successful mission with one reprimand: +1 base, -1 reprimand = 0 rep, +1 reprimand
+            screen.query_one("#mission-outcome", Select).value = "succeeded"
+            screen.query_one("#mission-reprimands", Input).value = "1"
+            screen.query_one("#btn-propose-reputation").press()
+            await pilot.pause()
+            assert screen.query_one("#reputation-delta", Input).value == "0"
+            assert screen.query_one("#reprimand-delta", Input).value == "1"
+            # now a clean success proposes +1 and applies it
+            screen.query_one("#mission-reprimands", Input).value = "0"
+            screen.query_one("#btn-propose-reputation").press()
+            await pilot.pause()
+            assert screen.query_one("#reputation-delta", Input).value == "1"
+            screen.query_one("#btn-apply-reputation").press()
+            await pilot.pause()
+
+        sheet = db.get_entity(eid)["fields"]["sheet"]
+        assert sheet["reputation"] == 2   # default 1, +1
+        assert sheet["reprimands"] == 0
+
+    run(scenario)
+
+
+def test_reputation_readout_shows_standing(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = _make_pc()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_milestones(pilot, app, eid)
+            readout = str(screen.query_one("#reputation-readout").content)
+            assert "Untested" in readout   # default reputation 1
+
+    run(scenario)
+
+
 def test_end_of_mission_requires_a_nonzero_change(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     eid = _make_pc()

@@ -73,6 +73,42 @@ def increase_department(departments: dict, key: str) -> dict:
 # not enforced -- the GM decides the deltas each mission and applies any
 # consequences. The helpers just clamp to the tracker's bounds.
 
+# A tool-authored standing ladder over the 0..REPUTATION_MAX range: a legible
+# label for a character's current Reputation. These names and thresholds are
+# this tracker's own convention (like the 0-20 bound itself), not a reproduced
+# table. Ascending; reputation_standing() picks the highest threshold reached.
+REPUTATION_STANDINGS = [
+    (0, "Untested"),
+    (4, "Trusted"),
+    (8, "Respected"),
+    (12, "Distinguished"),
+    (16, "Decorated"),
+    (20, "Legendary"),
+]
+
+
+def reputation_standing(reputation: int) -> str:
+    """The standing label for a Reputation score (see REPUTATION_STANDINGS)."""
+    reputation = int(reputation)
+    label = REPUTATION_STANDINGS[0][1]
+    for threshold, name in REPUTATION_STANDINGS:
+        if reputation >= threshold:
+            label = name
+        else:
+            break
+    return label
+
+
+def mission_reputation_change(*, succeeded: bool, reprimands_gained: int = 0) -> tuple[int, int]:
+    """Propose an end-of-mission ``(reputation_delta, reprimand_delta)`` from a
+    mission's outcome. Tool convention: completing a mission raises Reputation
+    by 1, each Reprimand earned cancels one point of that gain, and the
+    Reprimands themselves accrue. Pure arithmetic the GM can still override."""
+    reprimands_gained = max(0, int(reprimands_gained))
+    base = 1 if succeeded else 0
+    return base - reprimands_gained, reprimands_gained
+
+
 def adjust_reputation(current: int, delta: int) -> int:
     """Shift Reputation by ``delta``, bounded to 0..REPUTATION_MAX."""
     return max(0, min(sta.REPUTATION_MAX, int(current) + int(delta)))

@@ -7,6 +7,7 @@ from textual.containers import Container, Horizontal, Vertical, ScrollableContai
 import db
 import export as exp
 import sta_sheet as sta
+import advancement as adv
 import dice
 import momentum as momentum_mod
 import talents as talents_lib
@@ -133,6 +134,7 @@ class CharacterSheetScreen(Screen):
             Label("Role (e.g. Chief Engineer)"), Input(value=self.sheet["role"], id="sta-role"),
             Label("Determination (0-3)"), Input(value=str(self.sheet["determination"]), id="sta-determination", classes="stat-input"),
             Label("Reputation"), Input(value=str(self.sheet["reputation"]), id="sta-reputation", classes="stat-input"),
+            Static("", id="sta-reputation-standing"),
             Label("Reprimands"), Input(value=str(self.sheet["reprimands"]), id="sta-reprimands", classes="stat-input"),
             Label("Protection / Soak"), Input(value=str(self.sheet["protection"]), id="sta-protection", classes="stat-input"),
             Label("Stress Max (blank = Fitness + Security)"), Input(value=str(self.sheet["stress_max"]), id="sta-stress-max", classes="stat-input"),
@@ -423,6 +425,9 @@ class CharacterSheetScreen(Screen):
         base = sta.base_stress(sheet)
         self.query_one("#sta-stress-readout", Static).update(
             f"[bold]Base Stress[/] (Fitness + Security): {base}"
+        )
+        self.query_one("#sta-reputation-standing", Static).update(
+            f"[dim]Standing:[/] [#82aaff]{adv.reputation_standing(sheet['reputation'])}[/]"
         )
         self.sheet = sheet
 

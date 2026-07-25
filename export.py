@@ -10,6 +10,7 @@ from db import list_entities, get_relationships
 from models import ENTITY_LABELS, ENTITY_SCHEMAS, ENTITY_TYPES
 import sta_sheet as sta_mod
 import starship as ship_mod
+import advancement as advancement_mod
 import timeline
 
 # Related entity types worth naming as a session's cast in the log.
@@ -299,7 +300,8 @@ def _format_character_markdown(raw_sheet: dict, compact: bool = False) -> list[s
         f"**Determination:** {sheet['determination']}  **Protection:** {sheet['protection']}"
     )
     if not compact:
-        lines.append(f"- **Reputation:** {sheet['reputation']}  **Reprimands:** {sheet['reprimands']}")
+        standing = advancement_mod.reputation_standing(sheet["reputation"])
+        lines.append(f"- **Reputation:** {sheet['reputation']} ({standing})  **Reprimands:** {sheet['reprimands']}")
     profile = [f"**{lbl}:** {sheet[key]}" for lbl, key in (("Species", "species"), ("Rank", "rank"), ("Career", "career"), ("Role", "role")) if sheet[key]]
     if profile:
         lines.append("- " + "  ".join(profile))

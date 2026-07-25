@@ -77,6 +77,14 @@ class MilestoneScreen(DismissableScreen):
             Static("[bold]Between Missions: Reputation & Reprimands[/]"),
             Static("", id="reputation-readout"),
             Horizontal(
+                Container(Label("Mission outcome"),
+                          Select([("Succeeded", "succeeded"), ("Failed", "failed")],
+                                 value="succeeded", id="mission-outcome", allow_blank=False)),
+                Container(Label("Reprimands earned"), Input(value="0", id="mission-reprimands", classes="stat-input")),
+                Container(Label(" "), Button("Propose from Mission", id="btn-propose-reputation", variant="default")),
+                id="mission-row",
+            ),
+            Horizontal(
                 Container(Label("Reputation change"), Input(value="0", id="reputation-delta", classes="stat-input")),
                 Container(Label("Reprimands change"), Input(value="0", id="reprimand-delta", classes="stat-input")),
                 id="reputation-row",
@@ -120,9 +128,26 @@ class MilestoneScreen(DismissableScreen):
 
     def _refresh_reputation(self):
         sheet = self._sheet()
+        standing = adv.reputation_standing(sheet["reputation"])
         self.query_one("#reputation-readout", Static).update(
-            f"Reputation: [bold]{sheet['reputation']}[/]/{sta.REPUTATION_MAX}   "
-            f"Reprimands: [bold]{sheet['reprimands']}[/]"
+            f"Reputation: [bold]{sheet['reputation']}[/]/{sta.REPUTATION_MAX} "
+            f"([#82aaff]{standing}[/])   Reprimands: [bold]{sheet['reprimands']}[/]"
+        )
+
+    def _propose_reputation(self):
+        succeeded = str(self.query_one("#mission-outcome", Select).value) == "succeeded"
+        reprimands_gained = self._int_field("mission-reprimands")
+        rep_delta, reprimand_delta = adv.mission_reputation_change(
+            succeeded=succeeded, reprimands_gained=reprimands_gained
+        )
+        self.query_one("#reputation-delta", Input).value = str(rep_delta)
+        self.query_one("#reprimand-delta", Input).value = str(reprimand_delta)
+        sheet = self._sheet()
+        projected = adv.adjust_reputation(sheet["reputation"], rep_delta)
+        self.query_one("#reputation-status", Static).update(
+            f"[dim]Proposed: Reputation {rep_delta:+d} -> {projected} "
+            f"([#82aaff]{adv.reputation_standing(projected)}[/]), "
+            f"Reprimands {reprimand_delta:+d}. Review, then Apply.[/]"
         )
 
     def _int_field(self, widget_id: str) -> int:
@@ -151,7 +176,8 @@ class MilestoneScreen(DismissableScreen):
         self.query_one("#reputation-delta", Input).value = "0"
         self.query_one("#reprimand-delta", Input).value = "0"
         self.query_one("#reputation-status", Static).update(
-            f"[#c3e88d]Reputation now {new_rep}/{sta.REPUTATION_MAX}, Reprimands {new_reprimands}[/]"
+            f"[#c3e88d]Reputation now {new_rep}/{sta.REPUTATION_MAX} "
+            f"({adv.reputation_standing(new_rep)}), Reprimands {new_reprimands}[/]"
         )
         self._refresh_reputation()
 
@@ -227,6 +253,8 @@ class MilestoneScreen(DismissableScreen):
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "btn-apply-milestone":
             self._apply()
+        elif event.button.id == "btn-propose-reputation":
+            self._propose_reputation()
         elif event.button.id == "btn-apply-reputation":
             self._apply_reputation()
         elif event.button.id == "btn-milestone-close":

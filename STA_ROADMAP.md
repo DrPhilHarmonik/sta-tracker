@@ -431,7 +431,14 @@ missions, falls with Reprimands), and the tracker should make that legible.
 no reproduced acclaim/reprimand tables -- the ladder and the delta math are the
 tool's own conventions, like the 0–20 Reputation bound already is.
 
-**Status: Planned.**
+**Status: Done** (437/437). `advancement.reputation_standing` (Untested →
+Trusted → Respected → Distinguished → Decorated → Legendary ladder) and
+`mission_reputation_change(succeeded=, reprimands_gained=)`. The milestone
+screen's between-missions block gained a guided "Propose from Mission" step
+(outcome + reprimands → proposed deltas, review, then Apply) and shows the
+resulting standing. Standing also surfaces on the character-sheet Profile tab
+(live) and the vault-export Reputation line (the compact play aid still omits
+Reputation, per Phase 22).
 
 ### Phase 24 — Theme variables & a theme toggle (plumbing)
 
