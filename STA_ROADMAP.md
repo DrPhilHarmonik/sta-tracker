@@ -391,7 +391,12 @@ keep them open beside the tracker.
 **Non-goals:** no PDF/HTML rendering or print-CSS -- Markdown only, same as the
 rest of `export.py`; no layout engine, just a disciplined section order.
 
-**Status: Planned.**
+**Status: Done** (429/429). `export.export_play_aid(entity_id, path=None)` and
+`export.export_all_play_aids(output_dir)` (one file per adventurer + starship).
+The sheet formatters gained a `compact` flag reused by `_render_play_aid` --
+trims the ## heading, the Reputation/Reprimands line and the Milestone log for
+characters; the full vault output is unchanged. A "Play Aids" button on the
+Export screen writes to `<path>/Play Aids/`.
 
 ## Later / optional
 

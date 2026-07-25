@@ -26,6 +26,7 @@ class ExportScreen(DismissableScreen):
             Horizontal(
                 Button("Export", id="btn-export", variant="success"),
                 Button("Export Session Log", id="btn-export-log", variant="primary"),
+                Button("Play Aids", id="btn-export-play-aids", variant="primary"),
                 Button("Cancel", id="btn-cancel"),
                 id="export-actions",
             ),
@@ -56,6 +57,16 @@ class ExportScreen(DismissableScreen):
                 count = exp.export_session_log(log_path)
                 self.query_one("#export-status", Static).update(
                     f"[green]Wrote {count} session{'' if count == 1 else 's'} to {log_path}[/green]"
+                )
+            except Exception as ex:
+                self.query_one("#export-status", Static).update(f"[red]{format_io_error(ex)}[/red]")
+        elif event.button.id == "btn-export-play-aids":
+            path_str = self.query_one("#export-path", Input).value.strip()
+            aids_dir = Path(path_str).expanduser() / "Play Aids"
+            try:
+                count = exp.export_all_play_aids(aids_dir)
+                self.query_one("#export-status", Static).update(
+                    f"[green]Wrote {count} play aid{'' if count == 1 else 's'} to {aids_dir}[/green]"
                 )
             except Exception as ex:
                 self.query_one("#export-status", Static).update(f"[red]{format_io_error(ex)}[/red]")

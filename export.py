@@ -21,6 +21,10 @@ BACKUP_VERSION = 1
 # Entity types that carry a sheet worth exporting (character sheet or ship).
 _SHEET_TYPES = set(sta_mod.SHEET_ENTITY_TYPES) | set(ship_mod.SHEET_ENTITY_TYPES)
 
+# Entity types you actually bring to the table -- the ones that get a one-page
+# play aid. Adventurers and the ships they crew.
+_PLAY_AID_TYPES = {"adventurer", "starship"}
+
 # Frontmatter keys that aren't flat schema fields -- handled separately on
 # both export and import.
 _NON_SCHEMA_KEYS = {"type", "name", "sheet", "combat", "created", "updated"}
@@ -137,6 +141,49 @@ def export_session_log(output_path: Path) -> int:
     return count
 
 
+def _render_play_aid(entity: dict) -> str:
+    """A tight, single-page Markdown play aid: the entity's name and type, then
+    just the play-critical stat block (compact sheet, no relationships or notes
+    dump). Dispatches on type -- starships get the ship block, everyone else the
+    character block."""
+    lines = [f"# {entity['name']}", "", f"*{ENTITY_LABELS[entity['type']]}*", ""]
+    sheet = entity["fields"].get("sheet", {})
+    if entity["type"] == "starship":
+        lines.extend(_format_starship_markdown(sheet, compact=True))
+    else:
+        lines.extend(_format_character_markdown(sheet, compact=True))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def export_play_aid(entity_id: int, output_path: Path | None = None) -> Path:
+    """Write a one-page play aid for a single entity. Defaults to
+    ``~/dm_exports/play_aids/<name>.md`` when no path is given."""
+    entity = db.get_entity(entity_id)
+    if entity is None:
+        raise ValueError(f"Entity {entity_id} not found")
+    if output_path is None:
+        output_path = Path.home() / "dm_exports" / "play_aids" / f"{slugify(entity['name'])}.md"
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(_render_play_aid(entity), encoding="utf-8")
+    return output_path
+
+
+def export_all_play_aids(output_dir: Path) -> int:
+    """Write one play aid per adventurer and starship into ``output_dir`` (one
+    file each, named for the entity). Returns the number of files written."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    count = 0
+    for entity in list_entities():
+        if entity["type"] not in _PLAY_AID_TYPES:
+            continue
+        path = output_dir / f"{slugify(entity['name'])}.md"
+        path.write_text(_render_play_aid(entity), encoding="utf-8")
+        count += 1
+    return count
+
+
 def export_json_backup(output_path: Path) -> int:
     output_path = Path(output_path).expanduser()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -238,16 +285,21 @@ def _format_sheet_markdown(entity_type: str, raw_sheet: dict) -> list[str]:
     return _format_character_markdown(raw_sheet)
 
 
-def _format_character_markdown(raw_sheet: dict) -> list[str]:
+def _format_character_markdown(raw_sheet: dict, compact: bool = False) -> list[str]:
+    """Markdown stat block for a character. ``compact`` trims to the
+    play-critical numbers (drops the ## heading, the Reputation/Reprimands
+    line, and the Milestone log) for the one-page play aid; the full form is
+    unchanged for the vault export."""
     sheet = sta_mod.normalize_sheet(raw_sheet)
-    lines = ["## Character Sheet", ""]
+    lines = [] if compact else ["## Character Sheet", ""]
     lines.append("- **Attributes:** " + ", ".join(f"{sta_mod.ATTRIBUTE_LABELS[a]} {sheet['attributes'][a]}" for a in sta_mod.ATTRIBUTES))
     lines.append("- **Departments:** " + ", ".join(f"{sta_mod.DEPARTMENT_LABELS[d]} {sheet['departments'][d]}" for d in sta_mod.DEPARTMENTS))
     lines.append(
         f"- **Stress:** {sheet['stress_current']}/{sheet['stress_max']}  "
         f"**Determination:** {sheet['determination']}  **Protection:** {sheet['protection']}"
     )
-    lines.append(f"- **Reputation:** {sheet['reputation']}  **Reprimands:** {sheet['reprimands']}")
+    if not compact:
+        lines.append(f"- **Reputation:** {sheet['reputation']}  **Reprimands:** {sheet['reprimands']}")
     profile = [f"**{lbl}:** {sheet[key]}" for lbl, key in (("Species", "species"), ("Rank", "rank"), ("Career", "career"), ("Role", "role")) if sheet[key]]
     if profile:
         lines.append("- " + "  ".join(profile))
@@ -267,7 +319,7 @@ def _format_character_markdown(raw_sheet: dict) -> list[str]:
         lines.append(f"- **Injuries:** {', '.join(sheet['injuries'])}")
     if sheet["equipment"]:
         lines.append(f"- **Equipment:** {sheet['equipment']}")
-    if sheet["milestones"]:
+    if sheet["milestones"] and not compact:
         lines.append("- **Milestones:**")
         for m in sheet["milestones"]:
             when = f"{m['date']} " if m["date"] else ""
@@ -276,9 +328,11 @@ def _format_character_markdown(raw_sheet: dict) -> list[str]:
     return lines
 
 
-def _format_starship_markdown(raw_sheet: dict) -> list[str]:
+def _format_starship_markdown(raw_sheet: dict, compact: bool = False) -> list[str]:
+    """Markdown stat block for a starship. ``compact`` drops the ## heading for
+    the one-page play aid; the ship sheet has no log-ish lines to trim."""
     sheet = ship_mod.normalize_sheet(raw_sheet)
-    lines = ["## Starship Sheet", ""]
+    lines = [] if compact else ["## Starship Sheet", ""]
     lines.append("- **Systems:** " + ", ".join(f"{ship_mod.SYSTEM_LABELS[s]} {sheet['systems'][s]}" for s in ship_mod.SYSTEMS))
     lines.append("- **Departments:** " + ", ".join(f"{ship_mod.DEPARTMENT_LABELS[d]} {sheet['departments'][d]}" for d in ship_mod.DEPARTMENTS))
     lines.append(
