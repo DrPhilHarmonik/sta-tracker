@@ -398,14 +398,97 @@ trims the ## heading, the Reputation/Reprimands line and the Milestone log for
 characters; the full vault output is unchanged. A "Play Aids" button on the
 Export screen writes to `<path>/Play Aids/`.
 
+## Batch 4 — reputation depth & an LCARS coat of paint (Phases 23–25)
+
+Three additive phases, mechanics before cosmetics. 23 turns the raw Reputation
+/ Reprimand counters from 17c into a between-missions loop with standings and a
+guided prompt. 24/25 split the theming work the sane way: 24 is invisible
+plumbing (move `sta.tcss`'s hardcoded colors onto Textual theme variables and
+add a theme toggle), 25 is the visible LCARS payoff that rides on it. The split
+keeps each phase to one concern and makes 25 cheap once 24 lands.
+
+### Phase 23 — Reputation & advancement deepening
+
+**Why:** 17c added `reputation` (0–20) and `reprimands` counters and a raw
+end-of-mission adjust, but nothing *interprets* them: there's no sense of a
+character's standing, no guided end-of-mission step, and Reprimands don't bite.
+STA runs Reputation as a between-missions loop (standing rises with successful
+missions, falls with Reprimands), and the tracker should make that legible.
+
+**Scope:**
+- Extend `advancement.py` with pure helpers: `reputation_standing(reputation)`
+  returning a tool-authored label ladder (e.g. Untested → Trusted →
+  Distinguished → Decorated), and `mission_reputation_change(*, succeeded,
+  reprimands_gained)` proposing a Reputation delta from mission outcome (pure
+  arithmetic, the tool's convention -- not a reproduced table).
+- A **guided end-of-mission prompt** in the milestone screen's between-missions
+  block: pick the mission outcome + any reprimands, see the proposed
+  Reputation/Reprimand change, then apply (still via `end_of_mission`). Show the
+  resulting **standing** on the readout.
+- Surface standing on the character sheet / play aid readouts (read-only).
+
+**Non-goals:** no promotion-to-rank automation (Rank stays a freeform field),
+no reproduced acclaim/reprimand tables -- the ladder and the delta math are the
+tool's own conventions, like the 0–20 Reputation bound already is.
+
+**Status: Planned.**
+
+### Phase 24 — Theme variables & a theme toggle (plumbing)
+
+**Why:** `sta.tcss` (~1165 lines) hardcodes every color as literal hex, and the
+per-entity `PALETTE` in `screens/common.py` does the same. There is no way to
+reskin the app without editing raw rules, and Textual's own theme system
+(`register_theme`, `$primary`/`$surface`/`$panel`/`$accent` variables) isn't
+used at all. This phase is the prerequisite for *any* alternate theme.
+
+**Scope:**
+- Refactor `sta.tcss` to reference Textual theme variables instead of literal
+  hex for the structural colors (background, panels, header/footer, borders,
+  buttons, status text). Keep the current look as the default theme so nothing
+  visibly changes.
+- Register the existing dark scheme as a named theme; add a second stub theme so
+  the toggle has somewhere to go.
+- Add a **theme toggle** (a `/theme` action or keybinding flipping `App.theme`),
+  persisted to settings so it survives restarts.
+- Decide the `PALETTE` story: keep the 10 semantic entity accents (enemy=red,
+  location=green, …) as their own variable set so `tint_border` still conveys
+  identity independent of the chrome theme.
+
+**Non-goals:** no new visual style yet -- this phase must be a no-op to the eye;
+its only job is to make color swappable and add the switch.
+
+**Status: Planned.**
+
+### Phase 25 — LCARS theme & layout idioms (the payoff)
+
+**Why:** With 24's variables in place, an LCARS-flavored theme becomes a color
+map plus a handful of layout idioms. Terminals can't draw LCARS's curved elbow
+sweeps or its condensed Okuda font, so this is *LCARS-flavored*, not
+screen-accurate -- set that expectation in the theme's own docstring.
+
+**Scope:**
+- An `lcars` theme: the warm-on-black palette (apricot/orange, lilac /
+  "african-violet", butterscotch, ice-blue, mars-red) mapped onto the 24
+  variables -- black background, orange bars, pill-colored buttons.
+- Layout idiom pass: `border: round` on containers, black gutters between
+  blocks, right-aligned + ALL-CAPS panel headers, and (optionally) the
+  dashboard button column restyled into an LCARS left rail.
+- Decorative LCARS number-stub tags on panel headers as flavor `Static`s.
+- Keep entity accent colors semantic (from 24) so LCARS owns the chrome, not the
+  at-a-glance entity identity.
+
+**Non-goals:** no curved elbows or block-char sweeps, no bundled fonts -- ALL-CAPS
+text is the only typographic nod; Markdown/exports are untouched.
+
+**Status: Planned.**
+
 ## Later / optional
 
-- Reputation/Reprimand deepening (promotion thresholds, per-mission prompts)
-  beyond 17c.
-- UX polish: keyboard-help (`?`) overlay, LCARS theming.
+- UX polish: keyboard-help (`?`) overlay.
 
 (Between-scenes recovery / Threat carry and printable play aids were promoted
-to Batch 3 as Phases 21 and 22.)
+to Batch 3 as Phases 21 and 22; Reputation deepening and LCARS theming to
+Batch 4 as Phases 23–25.)
 
 ---
 
