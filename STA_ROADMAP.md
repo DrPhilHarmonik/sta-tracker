@@ -183,10 +183,35 @@ self-populating Talent/Focus libraries, personal *and* starship conflict
 tracking, Extended Tasks with Directives/scene Traits, and one-step Supporting
 Characters plus a spaceframe builder. 360 tests passing.
 
+## Phase 17 — Campaign timeline, session-log export & Reputation
+
+**Why:** The between-missions layer the tool lacked. Pulls the first item out of
+the "Later / optional" bucket into a proper phase, split 17a/b/c by concern.
+
+### 17a — Stardate campaign timeline
+
+**Status: Done.** The `session` schema gained a **Stardate** field (alongside the
+real date and in-game date). New pure `timeline.py` gathers the `session`
+entities into ordered rows (number · Stardate · in-game date · real date ·
+location · a one-line recap = the first non-blank note line), sorted by session
+number with unnumbered sessions falling to the end. New `TimelineScreen`
+(**Timeline** / `L` on the dashboard) renders them in a DataTable with an
+empty-state prompt; selecting a row opens that session's detail. 367 tests
+passing.
+
+### 17b — Session-log export
+
+**Planned.** A campaign session-log Markdown document rendered in timeline order,
+surfaced on the export screen.
+
+### 17c — Reputation & Reprimand
+
+**Planned.** `reputation`/`reprimands` on the character sheet with a
+between-missions apply flow and export stat-block surfacing.
+
 ## Later / optional
 
-- Stardate campaign timeline & session-log export; Reputation/Reprimand between
-  missions.
+- Reputation/Reprimand deepening (thresholds, per-mission prompts) beyond 17c.
 - Richer dice roller: buy extra d20s from Momentum inline, "keep the pool" for
   repeated Tasks, complication-range presets.
 - UX polish: cross-sheet search, list filters, keyboard-help overlay, theming.

@@ -115,6 +115,7 @@ ENTITY_SCHEMAS: dict[str, list[tuple]] = {
     "session": [
         ("session_number", "Session #", "number", None),
         ("session_date", "Real Date (YYYY-MM-DD)", "text", None),
+        ("stardate", "Stardate", "text", None),
         ("in_game_date", "In-Game Date", "text", None),
         ("location", "Primary Location", "entity_ref", "location"),
     ],

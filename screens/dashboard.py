@@ -15,6 +15,7 @@ from screens.party_overview import PartyOverviewScreen
 from screens.monster_ref import MonsterRefScreen
 from screens.reference import ReferenceScreen
 from screens.scene import SceneScreen
+from screens.timeline import TimelineScreen
 from screens.relationships import RelationshipBrowserScreen
 from screens.pools import PoolBar
 from screens.common import PALETTE
@@ -38,6 +39,7 @@ class Dashboard(Screen):
         Binding("m", "monster_ref", "Adversaries"),
         Binding("T", "reference", "Talents/Focuses"),
         Binding("D", "scene", "Scene/Directives"),
+        Binding("L", "timeline", "Timeline"),
         Binding("R", "relationship_browser", "Relationships"),
     ]
 
@@ -53,6 +55,7 @@ class Dashboard(Screen):
                 Button("Adversaries", id="btn-monster", variant="default"),
                 Button("Talents/Focuses", id="btn-reference", variant="default"),
                 Button("Scene", id="btn-scene", variant="default"),
+                Button("Timeline", id="btn-timeline", variant="default"),
                 Button("Export MD", id="btn-export", variant="success"),
                 Button("Search All", id="btn-search", variant="primary"),
                 Button("Backup / Restore", id="btn-backup", variant="default"),
@@ -114,6 +117,8 @@ class Dashboard(Screen):
             self.action_reference()
         elif btn_id == "btn-scene":
             self.action_scene()
+        elif btn_id == "btn-timeline":
+            self.action_timeline()
         elif btn_id == "btn-backup":
             self.action_backup()
 
@@ -137,6 +142,9 @@ class Dashboard(Screen):
 
     def action_scene(self):
         self.app.push_screen(SceneScreen())
+
+    def action_timeline(self):
+        self.app.push_screen(TimelineScreen())
 
     def action_relationship_browser(self):
         self.app.push_screen(RelationshipBrowserScreen())
