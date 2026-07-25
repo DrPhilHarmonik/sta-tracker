@@ -94,8 +94,35 @@ def test_normalize_fills_defaults():
     partial = sc.normalize_ship_combat({"ships": [{"entity_id": "7"}]})
     assert partial["ships"][0] == {
         "entity_id": 7, "side": sc.ADVERSARY, "has_acted": False,
-        "power": 0, "power_max": 0, "breaches": {}, "traits": [],
+        "power": 0, "power_max": 0, "breaches": {}, "stations": {}, "traits": [],
     }
+
+
+# -- crew stations ------------------------------------------------------------
+
+def test_assign_and_clear_station():
+    state = sc.add_ship(sc.default_ship_combat(), 1, sc.CREW, power_max=8)
+    state = sc.assign_station(state, 1, "conn", 42)
+    state = sc.assign_station(state, 1, "engineering", 43)
+    assert state["ships"][0]["stations"] == {"conn": 42, "engineering": 43}
+    state = sc.clear_station(state, 1, "conn")
+    assert state["ships"][0]["stations"] == {"engineering": 43}
+
+
+def test_assign_station_overwrites_and_survives_normalize():
+    state = sc.add_ship(sc.default_ship_combat(), 1, sc.CREW, power_max=8)
+    state = sc.assign_station(state, 1, "security", 10)
+    state = sc.assign_station(state, 1, "security", 11)   # reseat
+    state = sc.normalize_ship_combat(state)               # old data round-trips
+    assert state["ships"][0]["stations"] == {"security": 11}
+
+
+def test_assigned_officers_are_unique_in_order():
+    state = sc.add_ship(sc.default_ship_combat(), 1, sc.CREW, power_max=8)
+    state = sc.assign_station(state, 1, "command", 5)
+    state = sc.assign_station(state, 1, "conn", 5)     # same officer, two posts
+    state = sc.assign_station(state, 1, "science", 9)
+    assert sc.assigned_officers(state["ships"][0]) == [5, 9]
 
 
 def test_db_persists_ship_combat_field(monkeypatch, tmp_path):

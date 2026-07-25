@@ -6,6 +6,7 @@ from textual import on
 
 import db
 import starship as ship
+import sta_sheet as sta
 import dice
 import momentum as momentum_mod
 import ship_combat as sc
@@ -58,6 +59,7 @@ class ShipConflictScreen(DismissableScreen):
         await self._build_turns_tab()
         self._refresh_summary()
         self._refresh_log()
+        self._refresh_station_readout()
         self._sync_actor_to_current_turn()
 
     # -- options ----------------------------------------------------------
@@ -74,6 +76,14 @@ class ShipConflictScreen(DismissableScreen):
         in_combat = {s["entity_id"] for s in self.state["ships"]}
         return [(e["name"], str(e["id"])) for e in db.list_entities("starship") if e["id"] not in in_combat]
 
+    def _officer_options(self):
+        """Potential crew: every adventurer and NPC, by name."""
+        officers = db.list_entities("adventurer") + db.list_entities("npc")
+        return [(e["name"], str(e["id"])) for e in officers]
+
+    def _ship_state_for(self, entity_id: int) -> dict | None:
+        return next((s for s in self.state["ships"] if s["entity_id"] == entity_id), None)
+
     def _set_options_preserving_selection(self, select: Select, options):
         previous = select.value
         select.set_options(options)
@@ -82,7 +92,7 @@ class ShipConflictScreen(DismissableScreen):
 
     def _refresh_ship_selects(self):
         options = self._ship_options()
-        for sid in ("#sel-acting-ship", "#sel-remove-ship", "#sel-ship-target"):
+        for sid in ("#sel-acting-ship", "#sel-remove-ship", "#sel-ship-target", "#sel-station-ship"):
             self._set_options_preserving_selection(self.query_one(sid, Select), options)
         self._set_options_preserving_selection(self.query_one("#sel-add-ship", Select), self._available_ship_options())
         self._refresh_weapon_choices()
@@ -102,6 +112,20 @@ class ShipConflictScreen(DismissableScreen):
             Label("Remove Ship"),
             Select(self._ship_options(), id="sel-remove-ship", prompt="Choose a ship..."),
             Button("Remove from Conflict", id="btn-remove-ship", variant="error"),
+            Static("[bold]Crew Stations[/]  (seat an officer at a station; they roll their Department + the ship's System)"),
+            Select(self._ship_options(), id="sel-station-ship", prompt="Choose a ship..."),
+            Horizontal(
+                Select([(ship.DEPARTMENT_LABELS[d], d) for d in ship.DEPARTMENTS],
+                       id="sel-station", allow_blank=False, value="conn"),
+                Select(self._officer_options(), id="sel-station-officer", prompt="Choose an officer..."),
+                id="ship-station-row",
+            ),
+            Horizontal(
+                Button("Assign to Station", id="btn-assign-station", variant="primary"),
+                Button("Clear Station", id="btn-clear-station", variant="error"),
+                id="ship-station-actions",
+            ),
+            Static("", id="ship-station-readout"),
         )
 
     async def _build_conflict_tab(self):
@@ -128,6 +152,13 @@ class ShipConflictScreen(DismissableScreen):
                 Select(dept_options, id="ship-task-dept", allow_blank=False, value="conn"),
                 Label("Difficulty"), Input(value="2", id="ship-task-difficulty", classes="stat-input"),
                 id="ship-task-row",
+            ),
+            Horizontal(
+                Label("Acting Officer"),
+                Select([("Ship itself", "")], value="", id="ship-task-officer", allow_blank=False),
+                Label("Officer Focus"),
+                Select([("(no focus)", "")], value="", id="ship-task-focus", allow_blank=False),
+                id="ship-task-officer-row",
             ),
             Horizontal(
                 Label("Dice"), Select(BONUS_DICE_OPTIONS, value="0", id="ship-task-bonus-dice", allow_blank=False),
@@ -233,6 +264,12 @@ class ShipConflictScreen(DismissableScreen):
                 f"Shields {sheet['shields_current']}/{sheet['shields_max']} - "
                 f"Power {s['power']}/{s['power_max']}{breach_str} - Traits: {traits}{acted}"
             )
+            if s.get("stations"):
+                crew = ", ".join(
+                    f"{ship.DEPARTMENT_LABELS.get(dept, dept)}: {(db.get_entity(oid) or {}).get('name', f'#{oid}')}"
+                    for dept, oid in s["stations"].items()
+                )
+                lines.append(f"      [dim]Crew: {crew}[/dim]")
         if not self.state["ships"]:
             lines.append("[dim]No ships yet. Add some on the Ships tab.[/dim]")
         lines.extend(scene_lib.summary_lines())
@@ -308,7 +345,83 @@ class ShipConflictScreen(DismissableScreen):
             if any(v == sid for _, v in self._ship_options()):
                 sel.value = sid
         self._refresh_weapon_choices()
+        self._refresh_officer_choices()
         self._refresh_power_readout()
+
+    # -- crew stations ----------------------------------------------------
+
+    def _acting_officer_entity(self) -> dict | None:
+        """The officer chosen to act for the ship, or None for the ship itself."""
+        val = str(self.query_one("#ship-task-officer", Select).value or "")
+        return db.get_entity(int(val)) if val else None
+
+    def _refresh_officer_choices(self):
+        """Populate the acting-officer picker from the acting ship's crew."""
+        sel = self.query_one("#ship-task-officer", Select)
+        options = [("Ship itself", "")]
+        ship_state = self._acting_ship_state()
+        if ship_state:
+            for oid in sc.assigned_officers(ship_state):
+                officer = db.get_entity(oid)
+                if officer:
+                    options.append((officer["name"], str(oid)))
+        self._set_options_preserving_selection(sel, options)
+        if sel.value is Select.NULL:
+            sel.value = ""
+        self._refresh_officer_focus_choices()
+
+    def _refresh_officer_focus_choices(self):
+        sel = self.query_one("#ship-task-focus", Select)
+        options = [("(no focus)", "")]
+        officer = self._acting_officer_entity()
+        if officer:
+            osheet = sta.normalize_sheet(officer["fields"].get("sheet", {}))
+            options += [(f, f) for f in osheet["focuses"]]
+        self._set_options_preserving_selection(sel, options)
+        if sel.value is Select.NULL:
+            sel.value = ""
+
+    def _refresh_station_readout(self):
+        sel = self.query_one("#sel-station-ship", Select)
+        readout = self.query_one("#ship-station-readout", Static)
+        if sel.value is Select.NULL:
+            readout.update("[dim]Choose a ship to see its station assignments.[/dim]")
+            return
+        ship_state = self._ship_state_for(int(str(sel.value)))
+        if not ship_state or not ship_state["stations"]:
+            readout.update("[dim]No stations crewed.[/dim]")
+            return
+        parts = []
+        for dept, oid in ship_state["stations"].items():
+            officer = db.get_entity(oid)
+            parts.append(f"{ship.DEPARTMENT_LABELS.get(dept, dept)}: {officer['name'] if officer else f'#{oid}'}")
+        readout.update("  ·  ".join(parts))
+
+    def _assign_station(self):
+        ship_sel = self.query_one("#sel-station-ship", Select)
+        officer_sel = self.query_one("#sel-station-officer", Select)
+        if ship_sel.value is Select.NULL or officer_sel.value is Select.NULL:
+            return
+        ship_id = int(str(ship_sel.value))
+        station = str(self.query_one("#sel-station", Select).value)
+        officer_id = int(str(officer_sel.value))
+        self.state = sc.assign_station(self.state, ship_id, station, officer_id)
+        officer = db.get_entity(officer_id)
+        self._log(f"{officer['name'] if officer else '?'} took the {ship.DEPARTMENT_LABELS.get(station, station)} station")
+        self._persist()
+        self._refresh_station_readout()
+        self._refresh_officer_choices()
+
+    def _clear_station(self):
+        ship_sel = self.query_one("#sel-station-ship", Select)
+        if ship_sel.value is Select.NULL:
+            return
+        ship_id = int(str(ship_sel.value))
+        station = str(self.query_one("#sel-station", Select).value)
+        self.state = sc.clear_station(self.state, ship_id, station)
+        self._persist()
+        self._refresh_station_readout()
+        self._refresh_officer_choices()
 
     # -- ship management --------------------------------------------------
 
@@ -360,15 +473,30 @@ class ShipConflictScreen(DismissableScreen):
             difficulty = 2
         bonus = int(str(self.query_one("#ship-task-bonus-dice", Select).value) or 0)
         comp_range = int(str(self.query_one("#ship-task-comp-range", Select).value) or 1)
+
+        # An officer crewing a station rolls their own Department (and Focus)
+        # with the ship's System; otherwise the ship uses its own Department.
+        officer = self._acting_officer_entity()
+        if officer:
+            osheet = sta.normalize_sheet(officer["fields"].get("sheet", {}))
+            department_value = osheet["departments"][dept_key]
+            focus = bool(str(self.query_one("#ship-task-focus", Select).value or ""))
+            actor_label = f"{entity['name']} ({officer['name']} at {ship.DEPARTMENT_LABELS[dept_key]})"
+        else:
+            department_value = sheet["departments"][dept_key]
+            focus = False
+            actor_label = entity["name"]
+
         result = dice.roll_task(
             attribute=sheet["systems"][sys_key],
-            department=sheet["departments"][dept_key],
+            department=department_value,
             difficulty=difficulty,
+            focus=focus,
             dice=2 + bonus,
             complication_range=comp_range,
         )
         colour = "#c3e88d" if result.succeeded else "#ff5370"
-        detail = f"{entity['name']}: {result.detail}"
+        detail = f"{actor_label}: {result.detail}"
         if bonus > 0:
             pools = db.get_pools()
             new_m, new_t, paid, credited = momentum_mod.pay_for_bonus_dice(
@@ -388,7 +516,7 @@ class ShipConflictScreen(DismissableScreen):
             detail += f"  --  +{result.complications} Threat (pool {pools['threat']})"
             self._refresh_pool_bar()
         self.query_one("#ship-task-result", Static).update(f"[{colour}]{detail}[/]")
-        self._log(f"{entity['name']} rolled a ship Task: {result.successes} success(es) vs Difficulty {difficulty}")
+        self._log(f"{actor_label} rolled a ship Task: {result.successes} success(es) vs Difficulty {difficulty}")
         self._persist()
 
     def _roll_damage(self):
@@ -498,7 +626,16 @@ class ShipConflictScreen(DismissableScreen):
     @on(Select.Changed, "#sel-acting-ship")
     def _on_acting_changed(self, event: Select.Changed):
         self._refresh_weapon_choices()
+        self._refresh_officer_choices()
         self._refresh_power_readout()
+
+    @on(Select.Changed, "#ship-task-officer")
+    def _on_officer_changed(self, event: Select.Changed):
+        self._refresh_officer_focus_choices()
+
+    @on(Select.Changed, "#sel-station-ship")
+    def _on_station_ship_changed(self, event: Select.Changed):
+        self._refresh_station_readout()
 
     @on(Select.Changed, "#sel-ship-target")
     def _on_target_changed(self, event: Select.Changed):
@@ -546,6 +683,10 @@ class ShipConflictScreen(DismissableScreen):
             self._add_ship()
         elif bid == "btn-remove-ship":
             self._remove_ship()
+        elif bid == "btn-assign-station":
+            self._assign_station()
+        elif bid == "btn-clear-station":
+            self._clear_station()
         elif bid == "btn-spend-power":
             self._spend_power()
         elif bid == "btn-ship-roll-task":

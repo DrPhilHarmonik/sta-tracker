@@ -60,6 +60,9 @@ def normalize_ship_combat(raw: dict | None) -> dict:
             "power": max(0, int(s.get("power") or 0)),
             "power_max": max(0, int(s.get("power_max") or 0)),
             "breaches": {str(k): max(0, int(v)) for k, v in (s.get("breaches") or {}).items()},
+            "stations": {
+                str(k): int(v) for k, v in (s.get("stations") or {}).items() if v is not None
+            },
             "traits": [
                 {"name": str(t.get("name", "")), "rounds_remaining": t.get("rounds_remaining")}
                 for t in (s.get("traits") or [])
@@ -81,6 +84,7 @@ def add_ship(state: dict, entity_id: int, side: str = ADVERSARY, power_max: int 
         "power": max(0, int(power_max)),
         "power_max": max(0, int(power_max)),
         "breaches": {},
+        "stations": {},
         "traits": [],
     })
     return state
@@ -113,6 +117,39 @@ def set_range(state: dict, value: str) -> dict:
     if value in RANGES:
         state["range"] = value
     return state
+
+
+# -- crew stations ------------------------------------------------------------
+#
+# A ship's bridge stations map a station key (a Department) to the officer (an
+# adventurer/NPC entity id) crewing it. When that officer acts for the ship, the
+# Task rolls their Department + the ship's System (see the screen). Purely a
+# roster; it never changes the turn model.
+
+def assign_station(state: dict, entity_id: int, station: str, officer_id: int | None) -> dict:
+    """Seat ``officer_id`` at a ship's ``station`` (a Department key), or clear
+    the station when ``officer_id`` is None."""
+    state = normalize_ship_combat(state)
+    for s in state["ships"]:
+        if s["entity_id"] == entity_id:
+            if officer_id is None:
+                s["stations"].pop(str(station), None)
+            else:
+                s["stations"][str(station)] = int(officer_id)
+    return state
+
+
+def clear_station(state: dict, entity_id: int, station: str) -> dict:
+    return assign_station(state, entity_id, station, None)
+
+
+def assigned_officers(ship: dict) -> list[int]:
+    """Unique officer ids crewing a ship, in the order they were assigned."""
+    seen: list[int] = []
+    for officer_id in (ship.get("stations") or {}).values():
+        if officer_id not in seen:
+            seen.append(officer_id)
+    return seen
 
 
 # -- turn flow (side-alternating, mirrors combat.py) --------------------------

@@ -289,7 +289,19 @@ Department and Focus should drive the roll. Finishes the starship conflict loop.
 **Non-goals:** no new turn model (reuses the side-alternating engine); no auto
 crew generation (assign from existing adventurers/NPCs).
 
-**Status: Planned.**
+**Status: Done.** Each `ship_combat` per-ship record gained a `stations` map
+(Department key → officer entity id), normalized so old encounters load, with
+pure `assign_station` / `clear_station` / `assigned_officers` helpers. The Ships
+tab gained a **Crew Stations** section (pick ship + station + officer, Assign /
+Clear, with a live assignment readout); the Conflict tab's ship Task roll gained
+an **Acting Officer** picker (populated from the acting ship's crew) and an
+**Officer Focus** picker. When an officer acts, the roll uses their Department +
+Focus with the ship's System (otherwise the ship's own Department), and the log
+/ result name the officer and station. The conflict summary lists each ship's
+crew. 399 tests passing.
+
+**Phase 19 complete.** The starship conflict loop now models who is at the
+bridge.
 
 ### Phase 20 — Cross-sheet search & list filters
 

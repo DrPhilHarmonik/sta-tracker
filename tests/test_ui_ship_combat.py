@@ -91,6 +91,100 @@ def test_spend_power_reduces_the_acting_ships_pool(monkeypatch, tmp_path):
     run(scenario)
 
 
+def _make_officer(name="Lt. Nomi", conn=5, focuses=("Helm Operations",)):
+    oid = db.create_entity("adventurer", name, {}, "")
+    db.update_entity(oid, name, {"sheet": {
+        "attributes": {"control": 9, "daring": 10, "fitness": 9, "insight": 9, "presence": 9, "reason": 9},
+        "departments": {"command": 1, "conn": conn, "engineering": 1, "security": 2, "medicine": 1, "science": 1},
+        "focuses": list(focuses),
+    }}, "")
+    return oid
+
+
+def test_assign_officer_to_station_records_and_offers_them(monkeypatch, tmp_path):
+    crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
+    officer_id = _make_officer()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open(pilot, app, enc)
+            await _add_both(cs, pilot, crew_id, adv_id)
+            cs.query_one("#sel-station-ship", Select).value = str(crew_id)
+            cs.query_one("#sel-station", Select).value = "conn"
+            cs.query_one("#sel-station-officer", Select).value = str(officer_id)
+            cs.query_one("#btn-assign-station").press()
+            await pilot.pause()
+
+            state = db.get_entity(enc)["fields"]["ship_combat"]
+            crew = next(s for s in state["ships"] if s["entity_id"] == crew_id)
+            assert crew["stations"] == {"conn": officer_id}
+            assert "Lt. Nomi" in str(cs.query_one("#ship-station-readout").content)
+
+            # Once acting, the ship offers the seated officer (setting an absent
+            # value would raise, so a clean set proves it's a listed option).
+            cs.query_one("#sel-acting-ship", Select).value = str(crew_id)
+            await pilot.pause()
+            officer_sel = cs.query_one("#ship-task-officer", Select)
+            officer_sel.value = str(officer_id)
+            assert officer_sel.value == str(officer_id)
+
+    run(scenario)
+
+
+def test_officer_substitution_uses_officer_department_on_roll(monkeypatch, tmp_path):
+    crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
+    officer_id = _make_officer()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open(pilot, app, enc)
+            await _add_both(cs, pilot, crew_id, adv_id)
+            cs.query_one("#sel-station-ship", Select).value = str(crew_id)
+            cs.query_one("#sel-station", Select).value = "conn"
+            cs.query_one("#sel-station-officer", Select).value = str(officer_id)
+            cs.query_one("#btn-assign-station").press()
+            await pilot.pause()
+            cs.query_one("#btn-ship-start").press()   # crew acts first
+            await pilot.pause()
+            cs.query_one("#ship-task-officer", Select).value = str(officer_id)
+            cs.query_one("#ship-task-dept", Select).value = "conn"
+            await pilot.pause()
+            cs.query_one("#btn-ship-roll-task").press()
+            await pilot.pause()
+            result = str(cs.query_one("#ship-task-result").content)
+            assert "Lt. Nomi at Conn" in result
+
+    run(scenario)
+
+
+def test_clear_station_removes_the_assignment(monkeypatch, tmp_path):
+    crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
+    officer_id = _make_officer()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            cs = await _open(pilot, app, enc)
+            await _add_both(cs, pilot, crew_id, adv_id)
+            cs.query_one("#sel-station-ship", Select).value = str(crew_id)
+            cs.query_one("#sel-station", Select).value = "conn"
+            cs.query_one("#sel-station-officer", Select).value = str(officer_id)
+            cs.query_one("#btn-assign-station").press()
+            await pilot.pause()
+            cs.query_one("#btn-clear-station").press()
+            await pilot.pause()
+            state = db.get_entity(enc)["fields"]["ship_combat"]
+            crew = next(s for s in state["ships"] if s["entity_id"] == crew_id)
+            assert crew["stations"] == {}
+
+    run(scenario)
+
+
 def test_ship_buying_dice_debits_momentum_pool(monkeypatch, tmp_path):
     crew_id, adv_id, enc = _setup(monkeypatch, tmp_path)
     db.set_pools(6, 0)
