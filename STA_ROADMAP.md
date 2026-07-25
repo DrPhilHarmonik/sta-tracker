@@ -321,7 +321,12 @@ invisible to search — the GM can't answer "who has Warp Field Dynamics?" fast.
 **Non-goals:** no full-text index or fuzzy ranking; substring match over the
 normalized sheet is enough at this scale.
 
-**Status: Planned.**
+**Status: Done** (408/408). New `search.py` flattens sheet content
+(Focuses/Values/Talents, species/rank/role, ship Talents/Traits) into labeled
+terms; `db.search_all` and per-type `db.list_entities` search now match name,
+notes, and sheet, and `search_all` annotates each hit with a `match` label.
+`GlobalSearchScreen` gained a "Match" column; `EntityListScreen` gained
+column filters for its select-type schema fields (Status/Kind/Type/Difficulty).
 
 ## Later / optional
 

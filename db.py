@@ -10,6 +10,7 @@ import starship as starship_mod
 import momentum as momentum_mod
 import combat as combat_mod
 import ship_combat as ship_combat_mod
+import search as search_mod
 
 DEFAULT_DB_PATH = Path.home() / ".config" / "sta" / "campaign.db"
 
@@ -240,19 +241,18 @@ def get_entity(id_: int) -> dict | None:
 def list_entities(type_: str = None, search: str = None) -> list[dict]:
     sql = "SELECT * FROM entities"
     params = []
-    clauses = []
     if type_:
-        clauses.append("type=?")
+        sql += " WHERE type=?"
         params.append(type_)
-    if search:
-        clauses.append("name LIKE ?")
-        params.append(f"%{search}%")
-    if clauses:
-        sql += " WHERE " + " AND ".join(clauses)
     sql += " ORDER BY name COLLATE NOCASE"
     with get_conn() as conn:
-        rows = conn.execute(sql, params).fetchall()
-        return [_row(r) for r in rows]
+        rows = [_row(r) for r in conn.execute(sql, params).fetchall()]
+    # Search matches name, notes, and sheet content (Focuses/Values/Talents,
+    # species/rank/role, ship Traits) -- see search.py. Done in Python because
+    # the searchable fields live inside the opaque JSON sheet blob.
+    if search and search.strip():
+        rows = [r for r in rows if search_mod.match(r, search)]
+    return rows
 
 
 def active_adventurers() -> list[dict]:
@@ -325,14 +325,19 @@ def latest_session() -> dict | None:
 
 
 def search_all(search: str) -> list[dict]:
-    like = f"%{search}%"
-    sql = (
-        "SELECT * FROM entities WHERE name LIKE ? OR notes LIKE ? "
-        "ORDER BY name COLLATE NOCASE"
-    )
-    with get_conn() as conn:
-        rows = conn.execute(sql, (like, like)).fetchall()
-        return [_row(r) for r in rows]
+    """Every entity whose name, notes, or sheet content matches ``search``,
+    ordered by name. Each returned dict carries a ``"match"`` key naming where
+    the query hit (e.g. ``"Name"`` or ``"Focus: Astrophysics"``)."""
+    query = (search or "").strip()
+    if not query:
+        return []
+    results = []
+    for entity in list_entities():
+        note = search_mod.match(entity, query)
+        if note:
+            entity["match"] = note
+            results.append(entity)
+    return results
 
 
 def _row(row) -> dict | None:

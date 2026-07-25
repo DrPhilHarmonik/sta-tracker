@@ -34,6 +34,18 @@ class EntityListScreen(DismissableScreen):
         self.type_ = type_
         self.label = ENTITY_LABELS[type_]
         self.label_plural = ENTITY_LABELS_PLURAL[type_]
+        # Filters aren't live until on_mount finishes wiring them, so the
+        # Select.Changed events fired while mounting don't reload mid-build.
+        self._filters_ready = False
+
+    def _filter_fields(self) -> list[tuple[str, str, list[str]]]:
+        """Select-type schema fields worth offering as column filters
+        (Status / Kind / Type / Difficulty, etc.), as (key, label, choices)."""
+        return [
+            (key, label, choices)
+            for key, label, ftype, choices in ENTITY_SCHEMAS.get(self.type_, [])
+            if ftype == "select" and choices
+        ]
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -65,12 +77,37 @@ class EntityListScreen(DismissableScreen):
             await self.query_one("#list-toolbar").mount(Button("Quick Crew", id="btn-quick-crew", variant="default"))
         if self.type_ == "starship":
             await self.query_one("#list-toolbar").mount(Button("Spaceframes", id="btn-spaceframes", variant="default"))
+        filter_fields = self._filter_fields()
+        if filter_fields:
+            bar = self.query_one("#list-container")
+            selects = []
+            for key, label, choices in filter_fields:
+                options = [(c, c) for c in choices]
+                selects.append(Select(
+                    options, id=f"filter-{key}", classes="list-filter",
+                    allow_blank=True, prompt=f"All {label}",
+                ))
+            await bar.mount(Horizontal(*selects, id="list-filters"), after="#list-toolbar")
+        self._filters_ready = True
         self._load()
+
+    def _active_filters(self) -> dict[str, str]:
+        """{field_key: value} for every column filter the user has set."""
+        active = {}
+        for key, _, _ in self._filter_fields():
+            sel = self.query_one(f"#filter-{key}", Select)
+            if sel.value is not Select.NULL:
+                active[key] = str(sel.value)
+        return active
 
     def _load(self, search: str = None):
         table = self.query_one(DataTable)
         table.clear()
+        if search is None:
+            search = self.query_one("#search", Input).value or None
         entities = db.list_entities(self.type_, search)
+        for key, value in self._active_filters().items():
+            entities = [e for e in entities if str(e["fields"].get(key, "")) == value]
         schema = ENTITY_SCHEMAS.get(self.type_, [])
         keys = [k for k, *_ in schema][:3]
         for e in entities:
@@ -90,6 +127,11 @@ class EntityListScreen(DismissableScreen):
     @on(Input.Changed, "#search")
     def on_search(self, event: Input.Changed):
         self._load(event.value or None)
+
+    @on(Select.Changed, ".list-filter")
+    def on_filter_changed(self, event: Select.Changed):
+        if self._filters_ready:
+            self._load()
 
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "btn-add":
@@ -162,7 +204,7 @@ class GlobalSearchScreen(DismissableScreen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Container(
-            Input(placeholder="Search all entities by name or notes...", id="global-search"),
+            Input(placeholder="Search all entities by name, notes, or sheet...", id="global-search"),
             DataTable(id="global-table", cursor_type="row"),
             id="global-search-container",
         )
@@ -171,7 +213,7 @@ class GlobalSearchScreen(DismissableScreen):
     def on_mount(self):
         self.title = "Search All"
         table = self.query_one(DataTable)
-        table.add_columns("Name", "Type")
+        table.add_columns("Name", "Type", "Match")
         self.query_one("#global-search", Input).focus()
 
     @on(Input.Changed, "#global-search")
@@ -188,6 +230,7 @@ class GlobalSearchScreen(DismissableScreen):
             table.add_row(
                 Text(e["name"], style=f"bold {PALETTE[e['type']]}"),
                 ENTITY_LABELS[e["type"]],
+                Text(e.get("match", ""), style="dim"),
                 key=str(e["id"]),
             )
 
