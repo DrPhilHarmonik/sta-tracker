@@ -91,3 +91,36 @@ def test_sheet_has_milestones_and_normalizes():
 
 def test_default_sheet_milestones_empty():
     assert sta.default_sheet()["milestones"] == []
+
+
+# -- reputation & reprimands --------------------------------------------------
+
+def test_default_sheet_reputation_and_reprimands():
+    sheet = sta.default_sheet()
+    assert sheet["reputation"] == 1
+    assert sheet["reprimands"] == 0
+
+
+def test_reputation_normalizes_within_bounds():
+    assert sta.normalize_sheet({"reputation": 999})["reputation"] == sta.REPUTATION_MAX
+    assert sta.normalize_sheet({"reputation": -5})["reputation"] == 0
+    assert sta.normalize_sheet({"reprimands": -3})["reprimands"] == 0
+    # garbage falls back to the default
+    assert sta.normalize_sheet({"reputation": "nope"})["reputation"] == 1
+
+
+def test_adjust_reputation_clamps_to_bounds():
+    assert adv.adjust_reputation(5, 3) == 8
+    assert adv.adjust_reputation(0, -2) == 0
+    assert adv.adjust_reputation(sta.REPUTATION_MAX, 5) == sta.REPUTATION_MAX
+
+
+def test_adjust_reprimands_floors_at_zero():
+    assert adv.adjust_reprimands(2, 1) == 3
+    assert adv.adjust_reprimands(1, -5) == 0
+
+
+def test_end_of_mission_applies_both_deltas():
+    assert adv.end_of_mission(4, 1, 2, 1) == (6, 2)
+    # Reputation can fall, Reprimands never go negative
+    assert adv.end_of_mission(1, 0, -5, -5) == (0, 0)

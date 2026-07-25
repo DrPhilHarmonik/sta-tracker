@@ -127,6 +127,45 @@ def test_note_only_requires_a_note(monkeypatch, tmp_path):
     run(scenario)
 
 
+def test_end_of_mission_updates_reputation_and_reprimands(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = _make_pc()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_milestones(pilot, app, eid)
+            screen.query_one("#reputation-delta", Input).value = "2"
+            screen.query_one("#reprimand-delta", Input).value = "1"
+            screen.query_one("#btn-apply-reputation").press()
+            await pilot.pause()
+            # inputs reset after applying
+            assert screen.query_one("#reputation-delta", Input).value == "0"
+
+        sheet = db.get_entity(eid)["fields"]["sheet"]
+        assert sheet["reputation"] == 3   # started at default 1, +2
+        assert sheet["reprimands"] == 1
+
+    run(scenario)
+
+
+def test_end_of_mission_requires_a_nonzero_change(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = _make_pc()
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            screen = await _open_milestones(pilot, app, eid)
+            screen.query_one("#btn-apply-reputation").press()  # both deltas 0
+            await pilot.pause()
+            assert "change" in str(screen.query_one("#reputation-status").content).lower()
+
+    run(scenario)
+
+
 def test_milestones_button_only_shows_for_adventurers(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     eid = _make_pc()

@@ -64,3 +64,27 @@ def swap_departments(departments: dict, up: str, down: str) -> dict:
 
 def increase_department(departments: dict, key: str) -> dict:
     return _increase(departments, sta.DEPARTMENTS, sta.DEPARTMENT_LABELS, key, DEPARTMENT_MAX, "Department")
+
+
+# -- Reputation & Reprimands (between missions) -------------------------------
+#
+# Reputation is a character's standing with Starfleet Command; Reprimands are
+# marks against Starfleet's ideals earned during a mission. These are tracked,
+# not enforced -- the GM decides the deltas each mission and applies any
+# consequences. The helpers just clamp to the tracker's bounds.
+
+def adjust_reputation(current: int, delta: int) -> int:
+    """Shift Reputation by ``delta``, bounded to 0..REPUTATION_MAX."""
+    return max(0, min(sta.REPUTATION_MAX, int(current) + int(delta)))
+
+
+def adjust_reprimands(current: int, delta: int) -> int:
+    """Shift the Reprimand count by ``delta``, never below 0."""
+    return max(0, int(current) + int(delta))
+
+
+def end_of_mission(reputation: int, reprimands: int, reputation_delta: int, reprimand_delta: int) -> tuple[int, int]:
+    """Apply an end-of-mission adjustment: Reputation shifts by
+    ``reputation_delta`` (bounded) and any new Reprimands accrue (floored at 0).
+    Returns the updated ``(reputation, reprimands)`` pair."""
+    return adjust_reputation(reputation, reputation_delta), adjust_reprimands(reprimands, reprimand_delta)

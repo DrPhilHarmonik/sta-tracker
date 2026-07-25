@@ -40,6 +40,13 @@ DEFAULT_DEPARTMENT = 1
 
 DETERMINATION_MAX = 3
 
+# Reputation is a between-missions standing with Starfleet Command (a small
+# non-negative score); Reprimands accrue when a character acts against
+# Starfleet's ideals. Both are tracked, not enforced -- the GM applies any
+# consequences. REPUTATION_MAX is a sane ceiling for the tracker, not a
+# reproduction of any published progression table.
+REPUTATION_MAX = 20
+
 # Entity types that carry a full character sheet (unchanged from the parent;
 # "enemy" is the STA adversary until the entity model is reworked).
 SHEET_ENTITY_TYPES = ("adventurer", "enemy")
@@ -58,6 +65,8 @@ def default_sheet() -> dict:
         "stress_max": base,
         "stress_current": base,
         "determination": 1,
+        "reputation": 1,          # standing with Starfleet Command (between missions)
+        "reprimands": 0,          # marks against Starfleet's ideals
         "protection": 0,          # armour Soak, reduces incoming injury
         "weapons": [],
         "injuries": [],
@@ -122,6 +131,8 @@ def normalize_sheet(raw: dict | None) -> dict:
         raw.get("stress_current", sheet["stress_max"]), 0, sheet["stress_max"], sheet["stress_max"]
     )
     sheet["determination"] = _clamp(raw.get("determination", 1), 0, DETERMINATION_MAX, 1)
+    sheet["reputation"] = _clamp(raw.get("reputation", 1), 0, REPUTATION_MAX, 1)
+    sheet["reprimands"] = _clamp(raw.get("reprimands", 0), 0, 99, 0)
     sheet["protection"] = _clamp(raw.get("protection", 0), 0, 99, 0)
 
     sheet["weapons"] = [

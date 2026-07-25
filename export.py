@@ -247,6 +247,7 @@ def _format_character_markdown(raw_sheet: dict) -> list[str]:
         f"- **Stress:** {sheet['stress_current']}/{sheet['stress_max']}  "
         f"**Determination:** {sheet['determination']}  **Protection:** {sheet['protection']}"
     )
+    lines.append(f"- **Reputation:** {sheet['reputation']}  **Reprimands:** {sheet['reprimands']}")
     profile = [f"**{lbl}:** {sheet[key]}" for lbl, key in (("Species", "species"), ("Rank", "rank"), ("Career", "career"), ("Role", "role")) if sheet[key]]
     if profile:
         lines.append("- " + "  ".join(profile))

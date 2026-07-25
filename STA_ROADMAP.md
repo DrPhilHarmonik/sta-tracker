@@ -211,8 +211,18 @@ passing.
 
 ### 17c — Reputation & Reprimand
 
-**Planned.** `reputation`/`reprimands` on the character sheet with a
-between-missions apply flow and export stat-block surfacing.
+**Status: Done.** The character sheet gained `reputation` (0–20, default 1) and
+`reprimands` (≥0), normalized like `determination`. New `advancement` helpers
+`adjust_reputation` / `adjust_reprimands` / `end_of_mission` clamp the tracker's
+bounds (mechanics only — no reproduced progression table). Both fields edit on
+the sheet's Profile tab and export in the character stat block. The
+`MilestoneScreen` (already the per-character between-missions screen) gained a
+**Between Missions: Reputation & Reprimands** section with a live readout and an
+**Apply End of Mission** button that shifts both, writing back to the sheet. 380
+tests passing.
+
+**Phase 17 complete.** Timeline, session-log export, and Reputation/Reprimand
+all shipped.
 
 ## Later / optional
 

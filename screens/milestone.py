@@ -74,6 +74,18 @@ class MilestoneScreen(DismissableScreen):
                 id="milestone-actions",
             ),
             Static("", id="milestone-status"),
+            Static("[bold]Between Missions: Reputation & Reprimands[/]"),
+            Static("", id="reputation-readout"),
+            Horizontal(
+                Container(Label("Reputation change"), Input(value="0", id="reputation-delta", classes="stat-input")),
+                Container(Label("Reprimands change"), Input(value="0", id="reprimand-delta", classes="stat-input")),
+                id="reputation-row",
+            ),
+            Horizontal(
+                Button("Apply End of Mission", id="btn-apply-reputation", variant="primary"),
+                id="reputation-actions",
+            ),
+            Static("", id="reputation-status"),
             Static("[bold]Milestone Log[/]"),
             Static("", id="milestone-log"),
             id="milestone-scroll",
@@ -85,6 +97,7 @@ class MilestoneScreen(DismissableScreen):
         self.title = f"{entity['name']} - Milestones" if entity else "Milestones"
         tint_border(self.query_one("#milestone-scroll"), "adventurer")
         self._refresh_log()
+        self._refresh_reputation()
 
     # -- log --------------------------------------------------------------
 
@@ -102,6 +115,45 @@ class MilestoneScreen(DismissableScreen):
             when = f"[dim]{m['date']}[/dim] " if m["date"] else ""
             lines.append(f"{when}[bold]{m['type']}[/] — {m['note']}")
         self.query_one("#milestone-log", Static).update("\n".join(lines))
+
+    # -- reputation & reprimands -----------------------------------------
+
+    def _refresh_reputation(self):
+        sheet = self._sheet()
+        self.query_one("#reputation-readout", Static).update(
+            f"Reputation: [bold]{sheet['reputation']}[/]/{sta.REPUTATION_MAX}   "
+            f"Reprimands: [bold]{sheet['reprimands']}[/]"
+        )
+
+    def _int_field(self, widget_id: str) -> int:
+        try:
+            return int(self.query_one(f"#{widget_id}", Input).value.strip())
+        except ValueError:
+            return 0
+
+    def _apply_reputation(self):
+        rep_delta = self._int_field("reputation-delta")
+        reprimand_delta = self._int_field("reprimand-delta")
+        if rep_delta == 0 and reprimand_delta == 0:
+            self.query_one("#reputation-status", Static).update("[red]Enter a Reputation or Reprimand change[/]")
+            return
+        entity = db.get_entity(self.entity_id)
+        sheet = sta.normalize_sheet(entity["fields"].get("sheet", {}))
+        new_rep, new_reprimands = adv.end_of_mission(
+            sheet["reputation"], sheet["reprimands"], rep_delta, reprimand_delta
+        )
+        sheet["reputation"] = new_rep
+        sheet["reprimands"] = new_reprimands
+        fields = dict(entity["fields"])
+        fields["sheet"] = sheet
+        db.update_entity(self.entity_id, entity["name"], fields, entity["notes"])
+
+        self.query_one("#reputation-delta", Input).value = "0"
+        self.query_one("#reprimand-delta", Input).value = "0"
+        self.query_one("#reputation-status", Static).update(
+            f"[#c3e88d]Reputation now {new_rep}/{sta.REPUTATION_MAX}, Reprimands {new_reprimands}[/]"
+        )
+        self._refresh_reputation()
 
     # -- apply ------------------------------------------------------------
 
@@ -175,5 +227,7 @@ class MilestoneScreen(DismissableScreen):
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "btn-apply-milestone":
             self._apply()
+        elif event.button.id == "btn-apply-reputation":
+            self._apply_reputation()
         elif event.button.id == "btn-milestone-close":
             self.dismiss()

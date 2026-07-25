@@ -88,6 +88,24 @@ def test_export_enemy_contains_stress(monkeypatch, tmp_path):
     assert "Stress" in content
 
 
+def test_export_contains_reputation_and_reprimands(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    eid = _make_adventurer("Kestra")
+    db.update_entity(eid, "Kestra", {
+        "sheet": {
+            "attributes": {"control": 10, "daring": 9, "fitness": 10, "insight": 9, "presence": 9, "reason": 9},
+            "departments": {"command": 2, "conn": 2, "engineering": 1, "security": 2, "medicine": 1, "science": 1},
+            "reputation": 5,
+            "reprimands": 2,
+        },
+    }, "")
+    out = tmp_path / "kestra.md"
+    exp.export_entity_sheet(eid, out)
+    content = out.read_text()
+    assert "**Reputation:** 5" in content
+    assert "**Reprimands:** 2" in content
+
+
 def test_export_default_path_slugified_name(monkeypatch, tmp_path):
     _setup(monkeypatch, tmp_path)
     eid = _make_adventurer("Zara the Bold")
