@@ -10,6 +10,10 @@ from db import list_entities, get_relationships
 from models import ENTITY_LABELS, ENTITY_SCHEMAS, ENTITY_TYPES
 import sta_sheet as sta_mod
 import starship as ship_mod
+import timeline
+
+# Related entity types worth naming as a session's cast in the log.
+_PARTICIPANT_TYPES = {"npc", "adventurer", "enemy", "starship", "faction", "location"}
 
 BACKUP_FORMAT = "dm-tracker-backup"
 BACKUP_VERSION = 1
@@ -66,6 +70,71 @@ def export_entity_sheet(entity_id: int, output_path: Path | None = None) -> Path
     md = _render_entity(entity, include_stats=True)
     output_path.write_text(md, encoding="utf-8")
     return output_path
+
+
+def _session_participants(session_id: int) -> list[str]:
+    """Names of the related entities worth listing as a session's cast,
+    deduped and alphabetised."""
+    names: dict[str, str] = {}
+    for r in get_relationships(session_id):
+        if r["from_id"] == session_id:
+            other_type, other_name = r["to_type"], r["to_name"]
+        else:
+            other_type, other_name = r["from_type"], r["from_name"]
+        if other_type in _PARTICIPANT_TYPES:
+            names[other_name.lower()] = other_name
+    return [names[k] for k in sorted(names)]
+
+
+def export_session_log(output_path: Path) -> int:
+    """Render every session, in timeline order, into a single Markdown campaign
+    log at ``output_path``. Each session becomes a heading with its Stardate /
+    dates / location, the related cast as wikilinks, and its full notes. Returns
+    the number of sessions written."""
+    entries = timeline.session_entries()
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    count = len(entries)
+    lines = ["# Campaign Session Log", ""]
+    lines.append(
+        f"*{count} session{'' if count == 1 else 's'} · "
+        f"generated {datetime.now().date().isoformat()}*"
+    )
+    lines.append("")
+
+    for e in entries:
+        heading = f"Session {e['number']}: {e['name']}" if e["number"] else e["name"]
+        lines.append(f"## {heading}")
+
+        meta = []
+        if e["stardate"]:
+            meta.append(f"**Stardate** {inline_text(e['stardate'])}")
+        if e["in_game_date"]:
+            meta.append(f"**In-Game** {inline_text(e['in_game_date'])}")
+        if e["session_date"]:
+            meta.append(f"**Played** {inline_text(e['session_date'])}")
+        if e["location"]:
+            meta.append(f"**Location** [[{wikilink_target(e['location'])}]]")
+        if meta:
+            lines.append(" · ".join(meta))
+        lines.append("")
+
+        participants = _session_participants(e["id"])
+        if participants:
+            lines.append(
+                "**Featuring:** "
+                + ", ".join(f"[[{wikilink_target(n)}]]" for n in participants)
+            )
+            lines.append("")
+
+        entity = db.get_entity(e["id"])
+        notes = (entity["notes"] if entity else "").strip()
+        lines.append(notes if notes else "*No log recorded.*")
+        lines.append("")
+
+    output_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return count
 
 
 def export_json_backup(output_path: Path) -> int:

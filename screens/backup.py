@@ -25,6 +25,7 @@ class ExportScreen(DismissableScreen):
             ),
             Horizontal(
                 Button("Export", id="btn-export", variant="success"),
+                Button("Export Session Log", id="btn-export-log", variant="primary"),
                 Button("Cancel", id="btn-cancel"),
                 id="export-actions",
             ),
@@ -45,6 +46,16 @@ class ExportScreen(DismissableScreen):
                 count = exp.export_vault(out_path, include_stats=include_stats)
                 self.query_one("#export-status", Static).update(
                     f"[green]Exported {count} entities to {out_path}[/green]"
+                )
+            except Exception as ex:
+                self.query_one("#export-status", Static).update(f"[red]{format_io_error(ex)}[/red]")
+        elif event.button.id == "btn-export-log":
+            path_str = self.query_one("#export-path", Input).value.strip()
+            log_path = Path(path_str).expanduser() / "Session Log.md"
+            try:
+                count = exp.export_session_log(log_path)
+                self.query_one("#export-status", Static).update(
+                    f"[green]Wrote {count} session{'' if count == 1 else 's'} to {log_path}[/green]"
                 )
             except Exception as ex:
                 self.query_one("#export-status", Static).update(f"[red]{format_io_error(ex)}[/red]")

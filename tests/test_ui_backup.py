@@ -34,6 +34,30 @@ def test_export_screen_shows_success_status(monkeypatch, tmp_path):
     run(scenario)
 
 
+def test_export_screen_writes_session_log(monkeypatch, tmp_path):
+    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
+    db.init_db()
+    db.create_entity("session", "First Contact", {"session_number": "1"}, "The crew beams down.")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(120, 50)) as pilot:
+            await pilot.pause()
+            app.screen.action_export()
+            await pilot.pause()
+            export_screen = app.screen
+            export_screen.query_one("#export-path").value = str(tmp_path / "vault")
+            export_screen.query_one("#btn-export-log").press()
+            await pilot.pause()
+            status = str(export_screen.query_one("#export-status").content)
+            assert "Wrote 1 session" in status
+            log_file = tmp_path / "vault" / "Session Log.md"
+            assert log_file.exists()
+            assert "The crew beams down." in log_file.read_text(encoding="utf-8")
+
+    run(scenario)
+
+
 def test_export_screen_shows_categorized_error_on_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
     db.init_db()

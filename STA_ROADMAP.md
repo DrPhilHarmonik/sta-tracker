@@ -201,8 +201,13 @@ passing.
 
 ### 17b — Session-log export
 
-**Planned.** A campaign session-log Markdown document rendered in timeline order,
-surfaced on the export screen.
+**Status: Done.** `export.export_session_log(path)` renders every session in
+timeline order into one `Session Log.md`: each session becomes a heading with
+its Stardate / in-game & real dates / location, the related cast
+(npc/adventurer/enemy/starship/faction/location) as `[[wikilinks]]`, and its
+full notes (or "*No log recorded.*"). The export screen gained an **Export
+Session Log** button that writes it into the vault directory. 372 tests
+passing.
 
 ### 17c — Reputation & Reprimand
 
