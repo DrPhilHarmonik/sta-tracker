@@ -224,12 +224,90 @@ tests passing.
 **Phase 17 complete.** Timeline, session-log export, and Reputation/Reprimand
 all shipped.
 
+---
+
+## Batch 2 — deepen play (Phases 18–20)
+
+The table loop is feature-complete; Batch 2 sharpens the parts the GM touches
+most. Ordered **mechanics-first**: the two engine-deepening builds (18, 19)
+before the search/filter usability work (20). Same working principles as
+Batch 1 — additive, one concern per phase, suite green + a commit per phase with
+the test count reported.
+
+### Phase 18 — Richer dice roller
+
+**Why:** The 2d20 engine is solid but the *spend* side of Momentum/Threat is
+still manual — the GM eyeballs the pool and adjusts counters by hand. This turns
+the metacurrency economy into inline affordances on the roll itself.
+
+**Scope:**
+- On every Task roll (character sheet, both conflict trackers): a **complication
+  range** preset (1 / 2 / 3) feeding `roll_task`'s existing `complication_range`
+  parameter, and a **buy dice** control that adds d20s up to `MAX_TASK_DICE` (5),
+  debiting the group Momentum pool (2 per die is the usual cost) or adding Threat
+  when the group buys on credit — written back through the `PoolBar` /
+  `db.adjust_momentum` / `adjust_threat` chokepoints.
+- A **Momentum spend menu** surfacing the common Immediate spends (extra die,
+  bonus [CD] of Effect, obtain information, keep the initiative) as one-click
+  debits that log to the conflict log — reminder-only text plus the pool math,
+  no rules enforcement.
+- **Keep the pool:** repeat the last Task with the same Attribute + Department +
+  Difficulty + Focus so a repeated check (or an Extended Task attempt) is one
+  press.
+
+**Non-goals:** no change to the pure `roll_task` result shape; this is spend
+accounting + UI on top of the existing engine and pools.
+
+**Status: Planned.**
+
+### Phase 19 — Ship crew stations & officer substitution
+
+**Why:** The deferred Phase-14b follow-up. A ship currently rolls its own
+System + Department; in play the *officer at the station* matters — their
+Department and Focus should drive the roll. Finishes the starship conflict loop.
+
+**Scope:**
+- Extend the `ship_combat` per-ship record with a **stations** map (bridge
+  station → assigned crew entity id) alongside the existing Power/Breach/Trait
+  state, through `normalize_ship_combat` so old encounters still load.
+- On the ship Task roll in `ShipConflictScreen`, pick the acting officer; the
+  roll uses the **officer's Department + the ship's System** (and the officer's
+  Focus for the critical range), instead of the ship's own Department.
+- Surface who is crewing which station in the Ships tab; log the officer by name
+  on each roll.
+
+**Non-goals:** no new turn model (reuses the side-alternating engine); no auto
+crew generation (assign from existing adventurers/NPCs).
+
+**Status: Planned.**
+
+### Phase 20 — Cross-sheet search & list filters
+
+**Why:** Global search (`db.search_all`) and the entity lists only match name and
+notes today, so a Focus, Talent, species, or Trait living in the sheet blob is
+invisible to search — the GM can't answer "who has Warp Field Dynamics?" fast.
+
+**Scope:**
+- Extend search to look **inside the sheet blob** (Focuses, Values, Talents,
+  species/rank/role, and starship systems/traits) so `GlobalSearchScreen` and
+  the per-type list search find sheet content, with a note on the match.
+- Add **column filters** to `EntityListScreen` (by status / kind / type — the
+  flat schema selects already in `models.py`), so long lists narrow quickly.
+- Keep it read-only and additive: the DB stays the source of truth; this is a
+  richer read path, no schema change.
+
+**Non-goals:** no full-text index or fuzzy ranking; substring match over the
+normalized sheet is enough at this scale.
+
+**Status: Planned.**
+
 ## Later / optional
 
-- Reputation/Reprimand deepening (thresholds, per-mission prompts) beyond 17c.
-- Richer dice roller: buy extra d20s from Momentum inline, "keep the pool" for
-  repeated Tasks, complication-range presets.
-- UX polish: cross-sheet search, list filters, keyboard-help overlay, theming.
+- Reputation/Reprimand deepening (promotion thresholds, per-mission prompts)
+  beyond 17c.
+- UX polish: keyboard-help (`?`) overlay, LCARS theming.
+- Between-scenes recovery (Stress/Injury), Threat reset-or-carry between
+  missions, and printable one-page character/ship play aids.
 
 ---
 
