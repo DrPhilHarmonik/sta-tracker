@@ -33,6 +33,13 @@ def seed_threat(num_players: int) -> int:
     return 2 * max(0, int(num_players))
 
 
+def threat_between_missions(threat: int, carry: bool) -> int:
+    """The GM's reset-or-carry decision at the end of a mission: keep the pool
+    (clamped) when ``carry`` is True, otherwise reset it to 0. Threat is not
+    reseeded here -- that is start-of-session seeding (see seed_threat)."""
+    return clamp_threat(threat) if carry else 0
+
+
 # -- Buying bonus d20s -------------------------------------------------------
 #
 # Before a Task, the group may buy up to 3 extra d20s (2d20 base -> 5 max). The

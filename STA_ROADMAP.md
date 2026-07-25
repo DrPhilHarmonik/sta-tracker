@@ -362,7 +362,12 @@ the GM's call) and they deserve a one-button flow.
 **Non-goals:** no automated Medicine Tasks or downtime economy, no per-injury
 severity model -- clearing an Injury is a GM-confirmed edit, not a dice check.
 
-**Status: Planned.**
+**Status: Done** (423/423). New pure `recovery.py` (`recover_stress`,
+`clear_injury`, `clear_all_injuries`, `recover_sheet`) and
+`momentum.threat_between_missions(threat, carry)`. The recovery UI landed on
+the **Party Overview** screen (it already lists every active PC's Stress and
+Injuries): "Recover Stress -- All", "Clear Injuries -- Selected" (row cursor),
+and Threat "Carry Over" / "Reset to 0" wired to `db.set_pools`.
 
 ### Phase 22 — Printable one-page play aids
 
