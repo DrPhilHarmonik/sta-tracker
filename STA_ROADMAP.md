@@ -328,13 +328,74 @@ notes, and sheet, and `search_all` annotates each hit with a `match` label.
 `GlobalSearchScreen` gained a "Match" column; `EntityListScreen` gained
 column filters for its select-type schema fields (Status/Kind/Type/Difficulty).
 
+## Batch 3 — between missions & at the table (Phases 21–22)
+
+Two additive phases, mechanics before utility (matching the Batch 2 ordering).
+21 gives the group a clean way to close out a scene/mission -- recover Stress
+and Injuries, decide whether Threat carries over; 22 turns the sheet data
+already in the DB into a compact play aid you can print or keep open at the
+table. Both are read/append only over existing state -- no schema change.
+
+### Phase 21 — Recovery & Threat carry (between scenes/missions)
+
+**Why:** The tracker can spend Stress, add Injuries, and bank Threat during
+play, but nothing helps the group *reset* between scenes or missions. Today a
+GM hand-edits every character's `stress_current` back up and manually zeroes
+Threat. STA has light, real procedures for this (Stress resets at the end of a
+scene; Injuries need a Medicine Task / downtime; Threat may reset or carry at
+the GM's call) and they deserve a one-button flow.
+
+**Scope:**
+- New pure `recovery.py`: `recover_stress(sheet)` (restore `stress_current`
+  to `stress_max`), `clear_injury(sheet, index)` / `clear_all_injuries(sheet)`,
+  and a `recover_sheet(sheet, *, stress=True, injuries=False)` convenience that
+  returns a new normalized sheet. Keep it a pure transform over the sheet dict,
+  mirroring `advancement.py`.
+- `threat_between_missions(threat, carry)` helper (in `momentum.py`, next to
+  the existing seed/clamp logic): return `threat` unchanged when `carry` is
+  True, else 0 -- the GM's reset-or-carry decision, made explicit.
+- A **"Between Scenes / Recovery"** section: end-of-scene "Recover Stress (all
+  active PCs)" action, per-PC injury clearing, and a Threat "Reset to 0 / Carry
+  over" control tied to `db.set_pools`. Reuse the milestone screen's
+  between-missions block or add a sibling section there; keep the wiring thin.
+
+**Non-goals:** no automated Medicine Tasks or downtime economy, no per-injury
+severity model -- clearing an Injury is a GM-confirmed edit, not a dice check.
+
+**Status: Planned.**
+
+### Phase 22 — Printable one-page play aids
+
+**Why:** `export.py` can already write a full Obsidian vault and a session log,
+but there's no compact, at-the-table reference: a single page per character or
+ship with just the numbers you reach for mid-roll (Attributes/Departments or
+Systems, Focuses, Values, Stress/Determination, weapons). GMs print these or
+keep them open beside the tracker.
+
+**Scope:**
+- New `export.export_play_aid(entity_id, output_path=None)` producing a tight,
+  single-page Markdown play aid, reusing `_format_character_markdown` /
+  `_format_starship_markdown` but trimmed to the play-critical block (no
+  relationship graph, no notes dump). Factor shared rendering rather than
+  duplicating the sheet formatters.
+- `export.export_all_play_aids(output_dir)` writing one file per adventurer +
+  starship (the entities you actually bring to the table), returning a count.
+- A **"Play Aids"** button on the backup/export screen next to "Export Session
+  Log", writing to `<path>/Play Aids/`.
+
+**Non-goals:** no PDF/HTML rendering or print-CSS -- Markdown only, same as the
+rest of `export.py`; no layout engine, just a disciplined section order.
+
+**Status: Planned.**
+
 ## Later / optional
 
 - Reputation/Reprimand deepening (promotion thresholds, per-mission prompts)
   beyond 17c.
 - UX polish: keyboard-help (`?`) overlay, LCARS theming.
-- Between-scenes recovery (Stress/Injury), Threat reset-or-carry between
-  missions, and printable one-page character/ship play aids.
+
+(Between-scenes recovery / Threat carry and printable play aids were promoted
+to Batch 3 as Phases 21 and 22.)
 
 ---
 
