@@ -6,7 +6,7 @@ use site. A registered Textual ``Theme`` carries that variable set, so the whole
 UI can be re-skinned by swapping the active theme -- the stylesheet references
 ``$sta-*`` names and never sees a literal hex.
 
-Two themes ship today:
+Three themes ship today:
 
 * ``sta-dark`` -- the app's original scheme. Its standard Textual slots
   (primary/secondary/...) are byte-for-byte the built-in ``textual-dark`` theme,
@@ -14,10 +14,21 @@ Two themes ship today:
   module existed, so selecting it is a no-op to the eye.
 * ``sta-light`` -- a coherent light counterpart that redefines the same variable
   set, proving the toggle re-skins the app as a whole.
+* ``sta-lcars`` -- a warm-on-black, LCARS-*flavored* scheme (apricot/orange bars,
+  african-violet and ice-blue accents, butterscotch text on true black). This is
+  a flavor, not a screen-accurate reproduction: a terminal can't draw LCARS's
+  curved elbow sweeps or its condensed Okuda typeface, and Textual CSS has no
+  text-transform, so there are no block-char sweeps and no forced ALL-CAPS. The
+  LCARS *look* beyond color (round borders, right-aligned amber headers) lives in
+  the ``App.-theme-lcars`` rules of ``sta.tcss``, gated by a class the app sets
+  when this theme is active.
 
 The ten per-entity accent colors are kept as their own variable group
 (``sta-entity-*``) and re-exported as :data:`ENTITY_ACCENTS` for the Python-side
-border tinting in ``screens/common.py``.
+border tinting in ``screens/common.py``. They are deliberately identical across
+all three themes: entity identity (enemy=red, location=green, ...) should read
+the same whatever the chrome, so LCARS owns the chrome, not the at-a-glance
+entity cue.
 """
 
 from textual.theme import Theme
@@ -153,7 +164,58 @@ STA_LIGHT = Theme(
     variables=dict(_LIGHT_VARIABLES),
 )
 
-ALL_THEMES = [STA_DARK, STA_LIGHT]
+# --- LCARS theme (warm-on-black; flavor, not screen-accurate) -----------------
+# Entity accents stay identical to the dark set (semantic identity, see module
+# docstring); only the chrome variables take on LCARS colors.
+_LCARS_VARIABLES = {
+    # Structural: true black grounds, apricot/orange framing.
+    "sta-bg":            "#000000",
+    "sta-panel":         "#0d0d0d",
+    "sta-panel-deep":    "#050505",
+    "sta-border":        "#ff9933",  # LCARS orange -- the signature bar color
+    "sta-border-soft":   "#cc7a2e",
+    "sta-border-dim":    "#7a4a1c",
+    "sta-border-accent": "#9c9cff",  # african-violet / periwinkle
+    "sta-border-danger": "#cc6666",  # mars-red, dimmed
+    "sta-input-bg":      "#1a1206",
+    "sta-bg-danger":     "#1a0505",
+    # Text: butterscotch / apricot on black.
+    "sta-fg":            "#ffcc99",
+    "sta-fg-bright":     "#ffe0c2",
+    "sta-text-muted":    "#ffcc66",
+    "sta-text-dim":      "#cc9f66",
+    "sta-text-hint":     "#99763f",
+    "sta-text-faint":    "#806633",
+    # Semantic accents.
+    "sta-accent":        "#cc99ff",  # violet
+    "sta-success":       "#99cc99",
+    "sta-info":          "#99ccff",  # ice-blue
+    "sta-danger":        "#ff6666",  # mars-red
+    "sta-warning":       "#ffcc66",  # butterscotch
+    **_entity_vars(ENTITY_ACCENTS),
+}
+
+STA_LCARS = Theme(
+    name="sta-lcars",
+    primary="#ff9933",
+    secondary="#cc99ff",
+    warning="#ffcc66",
+    error="#cc4444",
+    success="#88bb88",
+    accent="#ff9966",
+    foreground="#ffcc99",
+    background="#000000",
+    surface="#0d0d0d",
+    panel="#1a1a1a",
+    dark=True,
+    variables=dict(_LCARS_VARIABLES),
+)
+
+ALL_THEMES = [STA_DARK, STA_LIGHT, STA_LCARS]
+
+# The theme whose active-class drives the extra LCARS layout idioms in sta.tcss.
+LCARS_THEME = STA_LCARS.name
+LCARS_CLASS = "-theme-lcars"
 
 # Order the /theme toggle cycles through.
 THEME_NAMES = [t.name for t in ALL_THEMES]

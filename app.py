@@ -31,6 +31,13 @@ class STAApp(App):
         saved = settings.get_setting("theme", theme_mod.DEFAULT_THEME)
         self.theme = saved if saved in theme_mod.THEME_NAMES else theme_mod.DEFAULT_THEME
 
+    def watch_theme(self, theme_name: str) -> None:
+        # The LCARS layout idioms (round borders, right-aligned headers) live in
+        # sta.tcss gated on `App.-theme-lcars`; toggle that class to match the
+        # active theme. Fires on the __init__ assignment too, so a saved LCARS
+        # theme lands with its idioms already applied.
+        self.set_class(theme_name == theme_mod.LCARS_THEME, theme_mod.LCARS_CLASS)
+
     def action_cycle_theme(self):
         new_theme = theme_mod.next_theme(self.theme)
         self.theme = new_theme

@@ -66,12 +66,14 @@ def test_dark_theme_exposes_entity_accents_as_variables():
         assert variables[f"sta-entity-{entity_type}"] == hexv
 
 
-# -- both themes define the same variable set (coherent toggle) ---------------
+# -- every theme defines the same variable set (coherent toggle) --------------
 
-def test_light_theme_defines_the_same_variables_as_dark():
+def test_all_themes_define_the_same_variables():
     # A flip must not leave any $sta-* reference undefined, or the stylesheet
-    # fails to parse. Same keys in both themes guarantees that.
-    assert set(theme_mod.STA_LIGHT.variables) == set(theme_mod.STA_DARK.variables)
+    # fails to parse. Identical keys across every theme guarantees that.
+    dark_keys = set(theme_mod.STA_DARK.variables)
+    for t in theme_mod.ALL_THEMES:
+        assert set(t.variables) == dark_keys, t.name
 
 
 def test_light_theme_actually_differs_from_dark():
@@ -79,16 +81,45 @@ def test_light_theme_actually_differs_from_dark():
     assert theme_mod.STA_LIGHT.dark is False
 
 
+# -- LCARS theme --------------------------------------------------------------
+
+def test_lcars_theme_is_warm_on_black():
+    v = theme_mod.STA_LCARS.variables
+    assert v["sta-bg"] == "#000000"
+    assert v["sta-border"] == "#ff9933"
+    assert theme_mod.STA_LCARS.dark is True
+    assert theme_mod.STA_LCARS.background == "#000000"
+
+
+def test_lcars_keeps_entity_accents_semantic():
+    # Entity identity should read the same under LCARS as under dark: the
+    # entity accents are deliberately unchanged, only the chrome shifts.
+    lcars = theme_mod.STA_LCARS.variables
+    dark = theme_mod.STA_DARK.variables
+    for entity_type in theme_mod.ENTITY_ACCENTS:
+        key = f"sta-entity-{entity_type}"
+        assert lcars[key] == dark[key]
+
+
+def test_lcars_chrome_actually_differs_from_dark():
+    # ...while the chrome (non-entity) variables do change.
+    lcars = theme_mod.STA_LCARS.variables
+    dark = theme_mod.STA_DARK.variables
+    chrome = [k for k in dark if not k.startswith("sta-entity-")]
+    assert any(lcars[k] != dark[k] for k in chrome)
+
+
 # -- toggle order -------------------------------------------------------------
 
 def test_theme_names_and_default():
-    assert theme_mod.THEME_NAMES == ["sta-dark", "sta-light"]
+    assert theme_mod.THEME_NAMES == ["sta-dark", "sta-light", "sta-lcars"]
     assert theme_mod.DEFAULT_THEME == "sta-dark"
 
 
 def test_next_theme_cycles_and_wraps():
     assert theme_mod.next_theme("sta-dark") == "sta-light"
-    assert theme_mod.next_theme("sta-light") == "sta-dark"
+    assert theme_mod.next_theme("sta-light") == "sta-lcars"
+    assert theme_mod.next_theme("sta-lcars") == "sta-dark"
 
 
 def test_next_theme_from_unknown_lands_on_first():

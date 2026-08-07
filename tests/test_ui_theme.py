@@ -103,3 +103,56 @@ def test_unknown_saved_theme_falls_back_to_default(monkeypatch, tmp_path):
             assert app.theme == "sta-dark"
 
     run(scenario)
+
+
+def test_lcars_class_tracks_the_active_theme(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            assert "-theme-lcars" not in app.classes
+            app.theme = "sta-lcars"
+            await pilot.pause()
+            assert "-theme-lcars" in app.classes
+            app.theme = "sta-dark"
+            await pilot.pause()
+            assert "-theme-lcars" not in app.classes
+
+    run(scenario)
+
+
+def test_lcars_rounds_borders_and_right_aligns_headers(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            # dashboard is up; #title is a framed header
+            title = app.screen.query_one("#title")
+            assert title.styles.border_top[0] == "solid"
+            assert title.styles.text_align == "center"
+            app.theme = "sta-lcars"
+            await pilot.pause()
+            title = app.screen.query_one("#title")
+            assert title.styles.border_top[0] == "round"
+            assert title.styles.text_align == "right"
+
+    run(scenario)
+
+
+def test_saved_lcars_theme_boots_with_idioms_applied(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path)
+    settings.set_setting("theme", "sta-lcars")
+
+    async def scenario():
+        app = STAApp()
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            assert app.theme == "sta-lcars"
+            assert "-theme-lcars" in app.classes
+            assert app.screen.query_one("#title").styles.border_top[0] == "round"
+
+    run(scenario)

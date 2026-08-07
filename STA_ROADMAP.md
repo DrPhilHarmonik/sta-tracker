@@ -502,7 +502,25 @@ screen-accurate -- set that expectation in the theme's own docstring.
 **Non-goals:** no curved elbows or block-char sweeps, no bundled fonts -- ALL-CAPS
 text is the only typographic nod; Markdown/exports are untouched.
 
-**Status: Planned.**
+**Status: Done (462/462).** New `sta-lcars` theme in `theme.py`: warm-on-black
+palette (true-black grounds, `#ff9933` orange framing, african-violet `#9c9cff`
+and ice-blue `#99ccff` accents, butterscotch/apricot text) mapped onto the same
+21 `$sta-*` variables from Phase 24, added to `ALL_THEMES` so `ctrl+t` now cycles
+dark -> light -> lcars. Entity accents (`sta-entity-*`) are held identical across
+all three themes so entity identity reads the same whatever the chrome. Layout
+idioms live in an `App.-theme-lcars` block in `sta.tcss`, gated by a class
+`STAApp.watch_theme` sets when LCARS is active (so dark/light are untouched):
+round orange framing on the prominent panels/modals (each keeping its own border
+color var, style-only swap to `round`) and right-justified amber headers.
+
+**Trimmed from scope (documented deviation):** true ALL-CAPS headers and the
+decorative LCARS number-stub tags were dropped. Textual CSS has no
+`text-transform`, so ALL-CAPS would require uppercasing header *content* in Python
+across every screen (coupling content to the active theme), and number-stubs
+would need per-header flavor `Static`s injected the same way. Both break the
+clean split where the theme owns color and `sta.tcss` owns layout; deferred
+rather than threaded through screen code. `tint_border` also stays PALETTE-driven
+(not theme-reactive) since entity accents are intentionally theme-invariant now.
 
 ## Later / optional
 

@@ -1163,3 +1163,59 @@ QuickCaptureModal {
     margin: 0 2 1 2;
     padding-top: 1;
 }
+
+/* ================================================================== */
+/* LCARS layout idioms                                                */
+/* ------------------------------------------------------------------ */
+/* Only active under the sta-lcars theme: STAApp adds the -theme-lcars */
+/* class (see app.watch_theme) whenever that theme is selected, so     */
+/* these rules never touch the sta-dark / sta-light look. Terminals    */
+/* can't draw LCARS elbow sweeps, and Textual CSS has no text-transform */
+/* for true ALL-CAPS -- so the flavor here is round orange framing and */
+/* right-justified amber headers. Each rule keeps the element's own    */
+/* border color variable and only swaps the border style to round.     */
+
+/* Round framing on the prominent panels (orange frames). */
+App.-theme-lcars #title,
+App.-theme-lcars .card,
+App.-theme-lcars #confirm-box,
+App.-theme-lcars #qc-box,
+App.-theme-lcars #roll-output,
+App.-theme-lcars #roll-history,
+App.-theme-lcars #balance-readout,
+App.-theme-lcars #combat-summary-scroll,
+App.-theme-lcars #wiz-review-summary,
+App.-theme-lcars .rest-pc-block {
+    border: round $sta-border;
+}
+
+/* Accent-framed wraps keep their violet edge, rounded. */
+App.-theme-lcars #overview-wrap,
+App.-theme-lcars #xp-wrap {
+    border: round $sta-border-accent;
+}
+
+/* Danger frames keep their red edge, rounded. */
+App.-theme-lcars #death-save-section {
+    border: round $sta-danger;
+}
+
+App.-theme-lcars #monster-split {
+    border: round $sta-border-danger;
+}
+
+/* Right-justified headers -- the LCARS reading rhythm. */
+App.-theme-lcars #title,
+App.-theme-lcars #export-title,
+App.-theme-lcars #backup-title,
+App.-theme-lcars #vault-import-title,
+App.-theme-lcars #ddb-import-title,
+App.-theme-lcars #csv-import-title,
+App.-theme-lcars #campaign-title,
+App.-theme-lcars #new-campaign-title,
+App.-theme-lcars #xp-heading,
+App.-theme-lcars #qc-header,
+App.-theme-lcars .workflow-heading,
+App.-theme-lcars .rest-section-heading {
+    text-align: right;
+}
