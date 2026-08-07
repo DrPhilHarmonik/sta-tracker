@@ -1,15 +1,15 @@
 /* ---- Global ---- */
 Screen {
-    background: #1a1a2e;
+    background: $sta-bg;
 }
 
 Header {
-    background: #16213e;
-    color: #e0e0e0;
+    background: $sta-panel;
+    color: $sta-fg;
 }
 
 Footer {
-    background: #16213e;
+    background: $sta-panel;
 }
 
 Button {
@@ -22,7 +22,7 @@ Input, Select {
 }
 
 Label {
-    color: #b2ccd6;
+    color: $sta-text-muted;
 }
 
 .action-row {
@@ -72,11 +72,11 @@ Label {
 
 #title {
     text-align: center;
-    color: #c792ea;
+    color: $sta-accent;
     text-style: bold;
     margin-bottom: 2;
     padding: 1;
-    border: solid #c792ea;
+    border: solid $sta-accent;
 }
 
 #cards {
@@ -90,13 +90,13 @@ Label {
 .card {
     height: 5;
     content-align: center middle;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
     text-align: center;
 }
 
 .card:hover {
-    background: #0f3460;
+    background: $sta-border;
 }
 
 #actions {
@@ -131,14 +131,14 @@ Label {
 
 DataTable {
     height: 1fr;
-    background: #16213e;
+    background: $sta-panel;
 }
 
 /* ---- Relationship Browser ---- */
 #relationship-browser {
     height: 1fr;
     padding: 1 2;
-    background: #16213e;
+    background: $sta-panel;
 }
 
 #relationship-toolbar {
@@ -156,14 +156,14 @@ DataTable {
 #detail-scroll {
     height: 1fr;
     padding: 1 2;
-    background: #16213e;
+    background: $sta-panel;
 }
 
 #detail-actions {
     height: auto;
     padding: 1 2;
     align: left middle;
-    background: #1a1a2e;
+    background: $sta-bg;
 }
 
 #detail-actions Button {
@@ -204,13 +204,13 @@ DataTable {
 #form-fields ListView {
     height: 6;
     margin-top: 1;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 #form-actions {
     padding: 1 2;
-    background: #1a1a2e;
+    background: $sta-bg;
 }
 
 /* ---- Relationship Form ---- */
@@ -248,8 +248,8 @@ DataTable {
 #delrel-container ListView {
     height: 1fr;
     margin: 1 0;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 #delrel-actions Button {
@@ -261,8 +261,8 @@ DataTable {
     width: 50;
     height: auto;
     padding: 2;
-    background: #16213e;
-    border: solid #c792ea;
+    background: $sta-panel;
+    border: solid $sta-accent;
     align: center middle;
 }
 
@@ -293,24 +293,24 @@ QuickCaptureModal {
     height: auto;
     max-height: 36;
     padding: 2 3;
-    background: #16213e;
-    border: solid #c792ea;
+    background: $sta-panel;
+    border: solid $sta-accent;
 }
 
 #qc-header {
     text-style: bold;
     margin-bottom: 1;
-    color: #c792ea;
+    color: $sta-accent;
 }
 
 #qc-tag-hint {
-    color: #546e7a;
+    color: $sta-text-hint;
     margin-top: 1;
 }
 
 #qc-box Label {
     margin-top: 1;
-    color: #b2ccd6;
+    color: $sta-text-muted;
 }
 
 #qc-box Input {
@@ -321,8 +321,8 @@ QuickCaptureModal {
 #qc-entity-list {
     height: 6;
     margin-top: 1;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 #qc-status {
@@ -348,7 +348,7 @@ QuickCaptureModal {
 
 #campaign-title, #new-campaign-title {
     text-style: bold;
-    color: #c792ea;
+    color: $sta-accent;
     margin-bottom: 1;
 }
 
@@ -359,7 +359,7 @@ QuickCaptureModal {
 #campaign-table {
     height: 10;
     margin-bottom: 1;
-    background: #16213e;
+    background: $sta-panel;
 }
 
 #campaign-actions {
@@ -389,7 +389,7 @@ QuickCaptureModal {
 
 #export-title {
     text-style: bold;
-    color: #c3e88d;
+    color: $sta-success;
     margin-bottom: 2;
 }
 
@@ -446,7 +446,7 @@ QuickCaptureModal {
 
 #backup-title, #vault-import-title, #ddb-import-title, #csv-import-title {
     text-style: bold;
-    color: #f78c6c;
+    color: $sta-warning;
     margin-bottom: 2;
 }
 
@@ -509,14 +509,14 @@ QuickCaptureModal {
     height: auto;
     align: center top;
     padding: 1 2;
-    border: solid #1e2d45;
+    border: solid $sta-border-soft;
 }
 
 .ability-cell-label {
     width: 100%;
     text-align: center;
     text-style: bold;
-    color: #82aaff;
+    color: $sta-info;
 }
 
 .ability-input {
@@ -526,13 +526,13 @@ QuickCaptureModal {
 .ability-mod {
     width: 100%;
     text-align: center;
-    color: #c3e88d;
+    color: $sta-success;
     text-style: bold;
 }
 
 .race-bonus-badge {
     width: 10;
-    color: #c3e88d;
+    color: $sta-success;
     text-style: bold;
 }
 
@@ -543,7 +543,7 @@ QuickCaptureModal {
 .save-bonus, .skill-bonus {
     width: 6;
     margin-left: 2;
-    color: #c3e88d;
+    color: $sta-success;
     text-style: bold;
 }
 
@@ -560,7 +560,7 @@ QuickCaptureModal {
 }
 
 #combat-fields Static#sheet-prof-bonus {
-    color: #c3e88d;
+    color: $sta-success;
     text-style: bold;
 }
 
@@ -591,8 +591,8 @@ QuickCaptureModal {
 #attacks-fields ListView {
     height: 6;
     margin-bottom: 1;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 #attacks-fields Static {
@@ -601,7 +601,7 @@ QuickCaptureModal {
 
 #sheet-actions {
     padding: 1 2;
-    background: #1a1a2e;
+    background: $sta-bg;
 }
 
 #sheet-actions Button {
@@ -657,8 +657,8 @@ QuickCaptureModal {
     height: auto;
     max-height: 12;
     padding: 1 2;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
 }
 
 #roll-result {
@@ -667,8 +667,8 @@ QuickCaptureModal {
 
 #roll-history {
     height: 8;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 /* ---- Combat Tracker ---- */
@@ -718,7 +718,7 @@ QuickCaptureModal {
 
 #attack-roll-result {
     margin: 1 0;
-    color: #c3e88d;
+    color: $sta-success;
     text-style: bold;
 }
 
@@ -731,20 +731,20 @@ QuickCaptureModal {
     height: 6;
     margin-top: 1;
     margin-bottom: 1;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 #balance-readout {
     margin-top: 2;
     padding: 1;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
     min-height: 3;
 }
 
 #condition-desc {
-    color: #82aaff;
+    color: $sta-info;
     margin-bottom: 1;
     min-height: 2;
 }
@@ -752,18 +752,18 @@ QuickCaptureModal {
 #death-save-section {
     margin-top: 2;
     padding: 1;
-    border: solid #ff5370;
-    background: #1a0a0e;
+    border: solid $sta-danger;
+    background: $sta-bg-danger;
 }
 
 #death-save-heading {
     text-style: bold;
-    color: #ff5370;
+    color: $sta-danger;
     margin-bottom: 1;
 }
 
 #death-save-status {
-    color: #c3e88d;
+    color: $sta-success;
     margin-bottom: 1;
 }
 
@@ -776,8 +776,8 @@ QuickCaptureModal {
     height: auto;
     max-height: 14;
     padding: 1 2;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
 }
 
 /* ---- Active Effects ---- */
@@ -802,8 +802,8 @@ QuickCaptureModal {
     height: 8;
     margin-top: 1;
     margin-bottom: 1;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 /* ---- Session Workflow ---- */
@@ -814,7 +814,7 @@ QuickCaptureModal {
 
 .workflow-heading {
     text-style: bold;
-    color: #b2ccd6;
+    color: $sta-text-muted;
     margin-top: 1;
 }
 
@@ -855,8 +855,8 @@ QuickCaptureModal {
     height: 6;
     margin-top: 1;
     margin-bottom: 1;
-    background: #1a1a2e;
-    border: solid #0f3460;
+    background: $sta-bg;
+    border: solid $sta-border;
 }
 
 #wiz-attack-inputs Input, #wiz-special-inputs Input {
@@ -874,23 +874,23 @@ QuickCaptureModal {
 
 #wiz-review-summary {
     margin: 1 0;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
     padding: 1 2;
 }
 
 #wizard-actions {
     padding: 1 2;
-    background: #1a1a2e;
+    background: $sta-bg;
 }
 
 #wizard-error {
-    color: #ff5370;
+    color: $sta-danger;
     margin-bottom: 1;
 }
 
 .wiz-class-hint {
-    color: #c3e88d;
+    color: $sta-success;
     margin-bottom: 1;
 }
 
@@ -905,8 +905,8 @@ QuickCaptureModal {
 /* ── Spells tab ────────────────────────────────────────────────────── */
 
 #spell-stats {
-    background: #0f3460;
-    color: #e2e8f0;
+    background: $sta-border;
+    color: $sta-fg-bright;
     padding: 0 2;
     margin-bottom: 1;
 }
@@ -919,7 +919,7 @@ QuickCaptureModal {
 
 .slot-label {
     width: 6;
-    color: #a0b3c8;
+    color: $sta-text-dim;
 }
 
 .slot-input {
@@ -927,13 +927,13 @@ QuickCaptureModal {
     height: 1;
     border: none;
     padding: 0 1;
-    background: #1e2a3a;
+    background: $sta-input-bg;
 }
 
 .slot-sep {
     width: 3;
     text-align: center;
-    color: #566c7f;
+    color: $sta-text-faint;
 }
 
 #spell-form-row1, #spell-form-row2 {
@@ -976,20 +976,20 @@ QuickCaptureModal {
     height: auto;
     min-height: 4;
     max-height: 14;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
 }
 
 /* ── Rest screen ───────────────────────────────────────────────────── */
 
 .rest-section-heading {
-    color: #c3e88d;
+    color: $sta-success;
     margin-top: 1;
     margin-bottom: 0;
 }
 
 .rest-desc {
-    color: #566c7f;
+    color: $sta-text-faint;
     margin-bottom: 1;
 }
 
@@ -999,8 +999,8 @@ QuickCaptureModal {
 
 .rest-pc-block {
     height: auto;
-    background: #16213e;
-    border: solid #0f3460;
+    background: $sta-panel;
+    border: solid $sta-border;
     padding: 0 1;
     margin-bottom: 1;
 }
@@ -1016,11 +1016,11 @@ QuickCaptureModal {
 }
 
 .rest-pc-stats {
-    color: #a0b3c8;
+    color: $sta-text-dim;
 }
 
 .rest-slots {
-    color: #82aaff;
+    color: $sta-info;
     margin-bottom: 0;
 }
 
@@ -1029,7 +1029,7 @@ QuickCaptureModal {
     height: 1;
     border: none;
     padding: 0 1;
-    background: #1e2a3a;
+    background: $sta-input-bg;
 }
 
 #short-rest-roster {
@@ -1046,19 +1046,19 @@ QuickCaptureModal {
 #overview-wrap {
     margin: 1 2;
     padding: 1;
-    border: solid #4a7fbf;
+    border: solid $sta-border-accent;
     height: 1fr;
 }
 
 #overview-status {
     height: auto;
-    color: #82aaff;
+    color: $sta-info;
     margin-bottom: 1;
 }
 
 #party-table {
     height: 1fr;
-    background: #0d1b2a;
+    background: $sta-panel-deep;
 }
 
 /* ── Award XP ───────────────────────────────────────────────────────────── */
@@ -1066,7 +1066,7 @@ QuickCaptureModal {
 #xp-wrap {
     margin: 1 2;
     padding: 1;
-    border: solid #4a7fbf;
+    border: solid $sta-border-accent;
     height: auto;
 }
 
@@ -1092,7 +1092,7 @@ QuickCaptureModal {
 #xp-split-label {
     height: auto;
     margin-bottom: 1;
-    color: #82aaff;
+    color: $sta-info;
 }
 
 #xp-roster-heading {
@@ -1107,8 +1107,8 @@ QuickCaptureModal {
 
 #xp-roster {
     height: auto;
-    background: #0d1b2a;
-    border: solid #2a3f5f;
+    background: $sta-panel-deep;
+    border: solid $sta-border-dim;
 }
 
 #xp-actions {
@@ -1127,12 +1127,12 @@ QuickCaptureModal {
 #monster-split {
     height: 1fr;
     margin: 1 2 0 2;
-    border: solid #7b3f3f;
+    border: solid $sta-border-danger;
 }
 
 #monster-left {
     width: 32;
-    border-right: solid #7b3f3f;
+    border-right: solid $sta-border-danger;
     padding: 0 1;
 }
 
@@ -1143,14 +1143,14 @@ QuickCaptureModal {
 
 #monster-list {
     height: 1fr;
-    background: #0d1b2a;
+    background: $sta-panel-deep;
     border: none;
 }
 
 #monster-right {
     width: 1fr;
     padding: 1 2;
-    background: #0d1b2a;
+    background: $sta-panel-deep;
 }
 
 #monster-detail {

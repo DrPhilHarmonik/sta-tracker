@@ -5,19 +5,12 @@ from textual.screen import Screen
 
 import db
 from models import ENTITY_SCHEMAS
+from theme import ENTITY_ACCENTS, DEFAULT_BORDER
 
-PALETTE = {
-    "npc":        "#c792ea",
-    "adventurer": "#89ddff",
-    "enemy":      "#ff5370",
-    "starship":   "#80cbc4",
-    "location":   "#c3e88d",
-    "quest":      "#ffcb6b",
-    "faction":    "#f78c6c",
-    "item":       "#82aaff",
-    "session":    "#b2ccd6",
-    "encounter":  "#f07178",
-}
+# The per-entity accent colors live in theme.py as the canonical "entity accent"
+# variable set (also exposed to the stylesheet as $sta-entity-*). Kept aliased
+# here under the long-standing name the screens import.
+PALETTE = ENTITY_ACCENTS
 
 
 class DismissableScreen(Screen):
@@ -59,7 +52,7 @@ def tint_border(widget, entity_type: str):
     """Accent a container's border with its entity type's palette color, so
     every screen reachable from a given entity carries the same visual
     identity (e.g. all of an Enemy's screens show red, not just its name)."""
-    widget.styles.border = ("solid", PALETTE.get(entity_type, "#0f3460"))
+    widget.styles.border = ("solid", PALETTE.get(entity_type, DEFAULT_BORDER))
 
 
 def format_io_error(ex: Exception) -> str:

@@ -464,7 +464,22 @@ used at all. This phase is the prerequisite for *any* alternate theme.
 **Non-goals:** no new visual style yet -- this phase must be a no-op to the eye;
 its only job is to make color swappable and add the switch.
 
-**Status: Planned.**
+**Status: Done (456/456).** New `theme.py` centralizes every bespoke color as a
+named `$sta-*` theme variable and defines two registered Textual themes:
+`sta-dark` (standard slots byte-identical to built-in `textual-dark`, and 21
+`$sta-*` variables holding the exact hexes the stylesheet used before) so
+selecting it is a no-op to the eye, plus `sta-light`, a coherent light
+counterpart redefining the same variable set. `sta.tcss` was refactored so all
+21 literal hexes became `$sta-*` references (no literal hex remains). Themes are
+registered and the saved theme applied in `STAApp.__init__` (before the
+stylesheet parses, else `$sta-*` resolves against the wrong theme). New
+`settings.py` persists the choice as JSON next to the campaign-manager DB
+(`STA_SETTINGS_PATH` overridable for tests). `action_cycle_theme` (bound to
+`ctrl+t`) flips and persists. The 10 entity accents live in `theme.ENTITY_ACCENTS`
+as their own `sta-entity-*` variable group; `screens/common.py` re-exports it as
+`PALETTE`, so `tint_border` is unchanged. tint_border stays PALETTE-driven (not
+yet theme-reactive) to keep it pixel-identical and preserve the fake-widget unit
+test; making it resolve from the active theme is deferred to Phase 25.
 
 ### Phase 25 — LCARS theme & layout idioms (the payoff)
 

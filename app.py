@@ -5,6 +5,8 @@ from textual.binding import Binding
 
 import db
 import campaign_manager as cm
+import settings
+import theme as theme_mod
 from screens.dashboard import Dashboard
 
 
@@ -15,9 +17,25 @@ class STAApp(App):
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit"),
         Binding("ctrl+n", "quick_capture", "Quick Capture"),
+        Binding("ctrl+t", "cycle_theme", "Theme"),
     ]
 
     _active_session_id: int | None = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Themes must be registered and the active one selected before the
+        # stylesheet parses (which happens during startup, ahead of on_mount),
+        # or its $sta-* variable references resolve against the wrong theme.
+        theme_mod.register(self)
+        saved = settings.get_setting("theme", theme_mod.DEFAULT_THEME)
+        self.theme = saved if saved in theme_mod.THEME_NAMES else theme_mod.DEFAULT_THEME
+
+    def action_cycle_theme(self):
+        new_theme = theme_mod.next_theme(self.theme)
+        self.theme = new_theme
+        settings.set_setting("theme", new_theme)
+        self.notify(f"Theme: {new_theme}", title="Theme")
 
     def on_mount(self):
         if not os.environ.get("STA_DB_PATH"):
