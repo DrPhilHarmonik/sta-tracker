@@ -660,6 +660,52 @@ the result line placed inside the scrolling body lands below the fold -- the
 one thing the modal was opened for. Both fixed; the result and the pools now
 sit outside the scroll.
 
+## Batch 6 — finish the loop, open the door, tell the truth (Phases 29–31)
+
+Three small phases, none of them new systems. 29 connects two things already
+built and left unconnected. 30 fills a door Textual already installed and the
+app never answered. 31 is documentation debt: the README describes an app from
+eighteen phases ago.
+
+### Phase 29 — A Complication becomes a scene Trait
+
+**Why:** `roll_task` counts Complications and the UI reports the number, and
+then it is gone. At the table a Complication *is* something -- the console is
+sparking, the corridor is flooding -- and `scene.py` already tracks exactly
+that as scene Traits. The two halves of the loop exist and nothing joins them.
+
+**Scope:** when a roll generates a Complication, both roll sites offer to name
+it and add it as a scene Trait. One shared widget, since the combat tracker and
+the `ctrl+r` roller both need it.
+
+**Non-goals:** no automatic naming -- what the Complication *is* is the GM's
+call, and a generated "Complication 1" would be worse than a blank field.
+
+### Phase 30 — The command palette answers
+
+**Why:** Textual gives every app `ctrl+p`, and this one registers nothing, so
+it lists a single entry: "palette". Meanwhile the app has 24 screens and a
+campaign full of named entities, and reaching any of them means remembering a
+key or walking the dashboard.
+
+**Scope:** a `Provider` offering every dashboard destination and every entity
+by name, opening its detail screen.
+
+**Non-goals:** no fuzzy-matching of its own -- Textual's matcher is what the
+palette already uses everywhere else, and a second ranking scheme would just
+disagree with it.
+
+### Phase 31 — The README describes this app
+
+**Why:** it opens with "**Status: fork in progress** ... the rules layer is
+mid-migration", which was true at Phase 1 and has been wrong for eighteen
+phases. It documents entities, search, export and backup, and none of the
+dice, combat, ship combat, Momentum/Threat, milestones, reputation, play aids,
+themes, help overlay or quick roll.
+
+**Scope:** rewrite the status and feature sections against what Phases 11–30
+actually shipped, and document the keys.
+
 ## Later / optional
 
 (Between-scenes recovery / Threat carry and printable play aids were promoted
