@@ -20,6 +20,8 @@ import db
 import sta_sheet as sta
 import task
 
+from screens.common import ComplicationPrompt
+
 BONUS_DICE_OPTIONS = [("2 dice (base)", "0"), ("3 dice", "1"), ("4 dice", "2"), ("5 dice", "3")]
 COMP_RANGE_OPTIONS = [("Comp. on 20", "1"), ("on 19-20", "2"), ("on 18-20", "3")]
 
@@ -80,6 +82,7 @@ class QuickTaskModal(ModalScreen):
             # Outside the scroll deliberately: the result is the reason the
             # modal was opened, and inside it the roll landed below the fold.
             Static("", id="qt-result"),
+            ComplicationPrompt(id="qt-complication"),
             Static("", id="qt-pools"),
             id="qt-box",
         )
@@ -119,6 +122,12 @@ class QuickTaskModal(ModalScreen):
             self.dismiss()
         elif event.button.id == "btn-qt-roll":
             self.roll()
+        elif event.button.id == "qt-complication-add":
+            named = self.query_one(ComplicationPrompt).submit()
+            if named:
+                self.query_one("#qt-result", Static).update(
+                    f"[#ffcb6b]Scene Trait added: {named}[/]"
+                )
 
     def roll(self) -> None:
         entity = self._acting_entity()
@@ -157,4 +166,7 @@ class QuickTaskModal(ModalScreen):
         for note in outcome.notes:
             detail += f"  --  {note}"
         self.query_one("#qt-result", Static).update(f"[{colour}]{detail}[/]")
+        # A Complication is something that is now true in the scene; offer to
+        # write it down while the table still remembers what it was.
+        self.query_one(ComplicationPrompt).show_for(outcome.result.complications)
         self._show_pools()

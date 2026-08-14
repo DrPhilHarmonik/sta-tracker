@@ -1,9 +1,12 @@
 import json
 
 import yaml
+from textual.containers import Horizontal
 from textual.screen import Screen
+from textual.widgets import Button, Input, Label
 
 import db
+import scene
 from models import ENTITY_SCHEMAS
 from theme import ENTITY_ACCENTS, DEFAULT_BORDER
 
@@ -79,3 +82,61 @@ def format_io_error(ex: Exception) -> str:
     if isinstance(ex, OSError):
         return f"Filesystem error: {ex}"
     return f"Unexpected error: {ex}"
+
+
+class ComplicationPrompt(Horizontal):
+    """Offer to turn a rolled Complication into a scene Trait.
+
+    STA's Complications are things that are now true -- the console is
+    sparking, the corridor is flooding -- and `scene.py` already tracks exactly
+    that as scene Traits. The roll counted them and then dropped them, so this
+    is the join.
+
+    Hidden until a roll produces one. Deliberately never names the Complication
+    itself: what it *is* is the GM's call, and a generated "Complication 1"
+    would be worse than an empty field.
+
+    Shared between the combat tracker and the ctrl+r roller because both roll
+    Tasks, and a Complication means the same thing in either.
+    """
+
+    DEFAULT_CSS = """
+    ComplicationPrompt {
+        height: auto;
+        display: none;
+    }
+    ComplicationPrompt.-active {
+        display: block;
+    }
+    """
+
+    def __init__(self, id: str = "complication-prompt"):
+        super().__init__(id=id)
+        self.pending = 0
+
+    def compose(self):
+        yield Label("Complication:", classes="complication-label")
+        yield Input(placeholder="Name it (e.g. Sparking Console)...", id=f"{self.id}-name")
+        yield Button("Add scene Trait", id=f"{self.id}-add", variant="warning")
+
+    def show_for(self, complications: int) -> None:
+        """Reveal the prompt after a roll, or hide it when the roll was clean."""
+        self.pending = max(0, int(complications))
+        self.set_class(self.pending > 0, "-active")
+        if self.pending > 0:
+            self.query_one(f"#{self.id}-name", Input).value = ""
+
+    def submit(self) -> str | None:
+        """Add the named Trait and return its name, or None if unnamed.
+
+        An empty name is not an error worth shouting about -- the GM opened the
+        field and thought better of it, which is a normal thing to do.
+        """
+        field = self.query_one(f"#{self.id}-name", Input)
+        name = field.value.strip()
+        if not name:
+            return None
+        scene.add_trait(name)
+        field.value = ""
+        self.show_for(0)
+        return name

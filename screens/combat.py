@@ -14,7 +14,7 @@ import scene as scene_lib
 import task
 from models import ENTITY_LABELS
 
-from screens.common import DismissableScreen, PALETTE, tint_border
+from screens.common import ComplicationPrompt, DismissableScreen, PALETTE, tint_border
 from screens.pools import PoolBar
 from screens.wizard import WizardScreen
 
@@ -143,6 +143,7 @@ class CombatTrackerScreen(DismissableScreen):
                 id="task-actions",
             ),
             Static("Pick a character, set the Task, then roll.", id="task-result"),
+            ComplicationPrompt(id="combat-complication"),
             Static("[bold]Spend Momentum[/]"),
             Horizontal(
                 Select(MOMENTUM_SPEND_OPTIONS, value=MOMENTUM_SPEND_OPTIONS[0][1], id="momentum-spend", allow_blank=False),
@@ -376,6 +377,9 @@ class CombatTrackerScreen(DismissableScreen):
             self._log(f"{entity['name']} invoked a Value (spent 1 Determination)")
 
         self.query_one("#task-result", Static).update(f"[{colour}]{detail}[/]")
+        # A Complication is something that is now true in the scene; offer to
+        # write it down while the table still remembers what it was.
+        self.query_one(ComplicationPrompt).show_for(result.complications)
         self._log(f"{entity['name']} rolled a Task: {result.successes} success(es) vs Difficulty {difficulty}")
         self._persist()
 
@@ -589,6 +593,11 @@ class CombatTrackerScreen(DismissableScreen):
             self._next_round()
         elif bid == "btn-end-encounter":
             self._end_encounter()
+        elif bid == "combat-complication-add":
+            named = self.query_one(ComplicationPrompt).submit()
+            if named:
+                self._log(f"Complication became a scene Trait: {named}")
+                self._refresh_summary()
         elif bid == "btn-roll-task":
             self._roll_task()
         elif bid == "btn-combat-challenge-value":

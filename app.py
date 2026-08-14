@@ -8,6 +8,7 @@ import db
 import campaign_manager as cm
 import settings
 import theme as theme_mod
+from commands import STACommands
 from screens.dashboard import Dashboard
 
 
@@ -15,6 +16,9 @@ class STAApp(App):
     CSS_PATH = "sta.tcss"
     TITLE = "STA Tracker"
     SCREENS = {"dashboard": Dashboard}
+    # Textual's own providers stay: the palette should still offer the theme
+    # list and the help it offers in every Textual app.
+    COMMANDS = App.COMMANDS | {STACommands}
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit"),
         Binding("ctrl+n", "quick_capture", "Quick Capture"),

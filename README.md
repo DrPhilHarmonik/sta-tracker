@@ -3,21 +3,55 @@
 A terminal campaign manager for **Star Trek Adventures 2e** GMs, built with
 Textual and SQLite.
 
-> **Status: fork in progress.** This is a fork of a D&D 5e DM tracker, being
-> converted to the Star Trek Adventures 2d20 ruleset. The system-agnostic
-> campaign core (entities, relationships, search, export, backup) is fully
-> working. The rules layer (character sheets, dice, combat) is mid-migration —
-> see `STA_FORK_ROADMAP.md`. Phase 1 (fork & strip) is complete: the 5e-only
-> XP, rest, and encounter-balance systems have been removed.
+It began as a fork of a D&D 5e DM tracker; the migration to the 2d20 ruleset
+finished long ago (`STA_FORK_ROADMAP.md`, Phases 1–10), and everything since has
+been new capability for STA (`STA_ROADMAP.md`, Phases 11–31).
 
-## Features
+**No bundled content.** STA has no open SRD, so the tool ships rules *maths* and
+empty libraries. Talents, adversaries and spaceframes are yours to enter, and
+the libraries fill themselves in as you play.
 
-- Track NPCs, adventurers, locations, quests, factions, items, and sessions.
-- Add typed fields and freeform notes for each entity.
-- Create relationships between entities, including while creating a new entity (no need to save first).
-- Search across every entity's name and notes from one global search screen (`/` on the dashboard).
-- Export the campaign to Markdown files suitable for an Obsidian vault.
-- Back up and restore the full campaign as JSON, from the dashboard (`b`) or the CLI.
+## The campaign
+
+- NPCs, adventurers, enemies, starships, locations, quests, factions, items,
+  sessions and encounters, each with typed fields and freeform notes.
+- Relationships between any two of them, creatable before the entity is saved.
+- Global search across every name, note and sheet (`/`), and per-list filters.
+- Multiple campaigns, switchable in place.
+- A timeline of sessions, and a campaign log exported as one Markdown file.
+
+## The rules
+
+- **Character and ship sheets** — Attributes, Departments, Focuses, Values,
+  Talents, weapons, Stress and Injuries; a guided creation wizard with species.
+- **Task rolls** — 2d20 against Attribute + Department, Focus, bought dice,
+  Complication range, Challenge Dice for damage. `ctrl+r` rolls one from
+  anywhere.
+- **Momentum and Threat** — a shared pool bar, extra successes banked, bought
+  dice paid for, Complications feeding Threat, and Threat carried between
+  missions or not.
+- **Determination and Values** — invoke to spend, challenge to regain.
+- **Conflict** — a side-alternating tracker for personal combat, and a separate
+  one for ship combat with Power, Shields, Breaches and crew stations.
+- **Extended Tasks**, mission **Directives** and scene **Traits** — and a rolled
+  Complication can be named and kept as a scene Trait.
+- **Milestones and advancement**, **Reputation** standings and reprimands,
+  between-scenes **recovery**.
+- Reference libraries for Talents, Focuses, adversaries and spaceframes.
+
+## At the table
+
+- `?` (or F1) lists the keys the current screen answers to.
+- `ctrl+p` opens the command palette: any screen, or any entity by name.
+- `ctrl+n` captures a note mid-scene without leaving what you are doing.
+- `ctrl+t` cycles the theme — dark, light, and an LCARS-flavoured one.
+- One-page printable play aids for the characters and ships in play.
+
+## Getting it out again
+
+- Export to Markdown for an Obsidian vault, and import that vault back.
+- A JSON backup that carries the whole campaign, including the pools and every
+  library (see below).
 
 ## Setup
 

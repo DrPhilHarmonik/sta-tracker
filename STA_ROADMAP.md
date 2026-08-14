@@ -681,6 +681,13 @@ the `ctrl+r` roller both need it.
 **Non-goals:** no automatic naming -- what the Complication *is* is the GM's
 call, and a generated "Complication 1" would be worse than a blank field.
 
+**Status: Done (517/517).** `ComplicationPrompt` in `screens/common.py` is a
+small widget that stays hidden until a roll produces a Complication, then offers
+a name field and an "Add scene Trait" button. Mounted in both the conflict tab
+and the `ctrl+r` roller, because a Complication means the same thing in a
+conflict as out of one. An empty name adds nothing and says nothing: opening the
+field and thinking better of it is a normal thing to do at a table.
+
 ### Phase 30 — The command palette answers
 
 **Why:** Textual gives every app `ctrl+p`, and this one registers nothing, so
@@ -695,6 +702,19 @@ by name, opening its detail screen.
 palette already uses everywhere else, and a second ranking scheme would just
 disagree with it.
 
+**Status: Done (517/517).** `commands.py` adds `STACommands`, unioned with
+Textual's own providers so the palette keeps the theme picker it offers in every
+Textual app. Ten destinations plus every entity by name, each entity hit
+labelled with its type since two things can share a name. The entity list is
+read once per palette opening rather than per keystroke -- `search` runs on
+every character typed, and a campaign is a database query.
+
+Destinations run the Dashboard's own actions rather than pushing screens
+directly: the dashboard already knows how to build each one with the right
+arguments, and a second route is how the two drift. It walks the screen stack to
+find the dashboard, so the palette works three screens deep -- which is the
+point of a palette.
+
 ### Phase 31 — The README describes this app
 
 **Why:** it opens with "**Status: fork in progress** ... the rules layer is
@@ -705,6 +725,11 @@ themes, help overlay or quick roll.
 
 **Scope:** rewrite the status and feature sections against what Phases 11–30
 actually shipped, and document the keys.
+
+**Status: Done.** The fork notice is gone -- the migration finished at Phase 10
+and saying otherwise misdescribed the tool by eighteen phases. The features are
+now grouped as the campaign, the rules, what you use at the table, and how data
+gets out again, with the no-bundled-content position stated up front.
 
 ## Later / optional
 
