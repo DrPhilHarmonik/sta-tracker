@@ -1,4 +1,5 @@
 import os
+import re
 
 from textual.app import App
 from textual.binding import Binding
@@ -18,6 +19,14 @@ class STAApp(App):
         Binding("ctrl+q", "quit", "Quit"),
         Binding("ctrl+n", "quick_capture", "Quick Capture"),
         Binding("ctrl+t", "cycle_theme", "Theme"),
+        # `?` is the key people try, and F1 is the one that still works while a
+        # text field has focus -- on the entity lists the search Input takes
+        # focus on mount, so a bare `?` is typed into it rather than dispatched.
+        # Making `?` priority would fix that by breaking the ability to type a
+        # question mark anywhere in the app, which is a bad trade for a search
+        # box and a notes field.
+        Binding("question_mark", "help", "Help"),
+        Binding("f1", "help", "Help", show=False),
     ]
 
     _active_session_id: int | None = None
@@ -70,6 +79,44 @@ class STAApp(App):
                 except Exception:
                     pass
         return None
+
+    def action_help(self):
+        """Show the keys the *current* screen answers to.
+
+        The bindings are read here rather than inside HelpScreen because
+        pushing the modal makes it the active screen: asked from in there,
+        Textual would truthfully answer with the help overlay's own three keys.
+
+        Pressing `?` with the overlay already open closes it, rather than
+        stacking a second copy describing the first.
+        """
+        from screens.help import HelpScreen, binding_rows
+
+        screen = self.screen
+        if isinstance(screen, HelpScreen):
+            screen.dismiss()
+            return
+        rows = binding_rows(screen.active_bindings, self.get_key_display,
+                            nodes=(screen, self))
+        self.push_screen(HelpScreen(rows, type(screen).__name__, self._help_title(screen)))
+
+    @staticmethod
+    def _help_title(screen) -> str:
+        """A screen's own words for itself, falling back to its class name.
+
+        Screens carry a docstring far more often than any title attribute, and
+        its first line is already written for a reader.
+        """
+        title = getattr(screen, "TITLE", None)
+        if title:
+            return str(title)
+        doc = (type(screen).__doc__ or "").strip()
+        if doc:
+            return doc.splitlines()[0].rstrip(".")
+        # Last resort, and it shows: "EntityListScreen" is a class name, not a
+        # place. Split the camel case and drop the redundant "Screen".
+        name = re.sub(r"(?<!^)(?=[A-Z])", " ", type(screen).__name__)
+        return name.removesuffix(" Screen")
 
     def action_quick_capture(self):
         from screens.quick_capture import QuickCaptureModal

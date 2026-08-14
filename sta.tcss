@@ -1167,6 +1167,47 @@ QuickCaptureModal {
 /* ================================================================== */
 /* LCARS layout idioms                                                */
 /* ------------------------------------------------------------------ */
+/* ---- Keyboard help overlay (?) ---- */
+HelpScreen {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.75);
+}
+
+#help-box {
+    width: 64;
+    height: auto;
+    max-height: 40;
+    padding: 1 3;
+    background: $sta-panel;
+    border: solid $sta-accent;
+}
+
+#help-title {
+    text-style: bold;
+    color: $sta-accent;
+    margin-bottom: 1;
+}
+
+#help-body {
+    height: auto;
+    max-height: 30;
+}
+
+#help-hint {
+    color: $sta-text-hint;
+    margin-top: 1;
+}
+
+.help-group {
+    text-style: bold;
+    color: $sta-text-muted;
+    margin-top: 1;
+}
+
+.help-row {
+    color: $sta-fg;
+}
+
 /* Only active under the sta-lcars theme: STAApp adds the -theme-lcars */
 /* class (see app.watch_theme) whenever that theme is selected, so     */
 /* these rules never touch the sta-dark / sta-light look. Terminals    */
@@ -1180,6 +1221,7 @@ App.-theme-lcars #title,
 App.-theme-lcars .card,
 App.-theme-lcars #confirm-box,
 App.-theme-lcars #qc-box,
+App.-theme-lcars #help-box,
 App.-theme-lcars #roll-output,
 App.-theme-lcars #roll-history,
 App.-theme-lcars #balance-readout,
@@ -1215,6 +1257,7 @@ App.-theme-lcars #campaign-title,
 App.-theme-lcars #new-campaign-title,
 App.-theme-lcars #xp-heading,
 App.-theme-lcars #qc-header,
+App.-theme-lcars #help-title,
 App.-theme-lcars .workflow-heading,
 App.-theme-lcars .rest-section-heading {
     text-align: right;

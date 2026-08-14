@@ -522,13 +522,58 @@ clean split where the theme owns color and `sta.tcss` owns layout; deferred
 rather than threaded through screen code. `tint_border` also stays PALETTE-driven
 (not theme-reactive) since entity accents are intentionally theme-invariant now.
 
-## Later / optional
+## Phase 26 — Keyboard help overlay (`?`)
 
-- UX polish: keyboard-help (`?`) overlay.
+**Why:** The footer shows a handful of keys and the app has far more. The
+dashboard alone carries nine `show=False` bindings -- one per entity type,
+`n`/`a`/`x`/`l`/`q`/`f`/`i`/`s`/`c` -- which are fast once you know them and
+invisible until someone says so. 25 phases of features have accumulated keys
+with nowhere that lists them.
+
+**Scope:**
+- `?` (and F1) opens a modal listing the keys the *current* screen answers to,
+  split into "This screen" and "Everywhere".
+- Built from `Screen.active_bindings` -- what Textual will actually dispatch --
+  so it cannot drift from the bindings it describes.
+- Styled from the same `$sta-*` variables as every other modal, so it inherits
+  dark/light/LCARS without a per-theme rule.
+
+**Non-goals:** no prose manual, no per-action help text, no rules reference --
+this lists keys, and the rules libraries in Phase 13 cover the rest.
+
+**Status: Done (478/478).** `screens/help.py` holds `HelpScreen` plus two pure
+functions (`binding_rows`, `group_rows`) that are unit-tested without an app.
+The bindings are captured in `STAApp.action_help` and passed in, because
+pushing the modal makes *it* the active screen -- asked from inside, Textual
+would truthfully describe the overlay's own three keys. Pressing `?` again
+closes rather than stacking. The title comes from the screen's `TITLE`, else the
+first line of its docstring, else its class name split out of camel case.
+
+Three things the live app taught that the plan did not anticipate:
+
+- **`?` alone is not enough.** The entity lists focus their search `Input` on
+  mount, so a bare `?` is typed into the box rather than dispatched -- correct
+  for a text field, and it would leave the overlay unreachable from the screens
+  in heaviest use. F1 is bound alongside it. Making `?` `priority=True` would
+  have fixed it by breaking the ability to type a question mark anywhere in the
+  app.
+- **`Binding.system` does not identify framework bindings.** It reads like the
+  hook for "Textual's own", and is `False` on every one of them in Textual 8.0
+  (checked against a live screen). Filtering is by action name instead.
+- **`active_bindings` includes the focused widget's chain.** On any screen with
+  a search box that is thirty rows of "Delete character left" and "Move cursor
+  right a word and select", burying the four keys the screen offers. The rows
+  are scoped to the screen and the app; every `BINDINGS` in this app is declared
+  on one or the other, so nothing of ours is lost.
+
+## Later / optional
 
 (Between-scenes recovery / Threat carry and printable play aids were promoted
 to Batch 3 as Phases 21 and 22; Reputation deepening and LCARS theming to
-Batch 4 as Phases 23–25.)
+Batch 4 as Phases 23–25; the keyboard-help overlay to Phase 26.)
+
+Still open, from Phase 25's documented trim: true ALL-CAPS panel headers and
+the decorative LCARS number-stub tags.
 
 ---
 
