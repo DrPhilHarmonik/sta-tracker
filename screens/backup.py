@@ -157,9 +157,16 @@ class BackupScreen(DismissableScreen):
         path = Path(self.query_one("#restore-path", Input).value.strip()).expanduser()
         try:
             result = exp.import_json_backup(path, replace=replace)
-            self.query_one("#restore-status", Static).update(
-                f"[green]Restored {result['entities']} entities and {result['relationships']} relationships[/green]"
+            # The library count is worth showing rather than implying: a v1
+            # backup restores zero of them, and that number is the difference
+            # between "your reference library came back" and "it did not".
+            summary = (
+                f"Restored {result['entities']} entities and "
+                f"{result['relationships']} relationships"
             )
+            if result["libraries"]:
+                summary += f", plus {result['libraries']} librar{'y' if result['libraries'] == 1 else 'ies'}"
+            self.query_one("#restore-status", Static).update(f"[green]{summary}[/green]")
         except Exception as ex:
             self.query_one("#restore-status", Static).update(f"[red]{format_io_error(ex)}[/red]")
 

@@ -11,6 +11,7 @@ import momentum as momentum_mod
 import combat as cbt
 import conditions as cnd
 import scene as scene_lib
+import task
 from models import ENTITY_LABELS
 
 from screens.common import DismissableScreen, PALETTE, tint_border
@@ -343,45 +344,37 @@ class CombatTrackerScreen(DismissableScreen):
         # Invoking a Value spends 1 Determination from the acting character's
         # sheet for an automatic bonus success.
         invoke = self.query_one("#task-invoke", Switch).value
-        spend = 1 if invoke and sheet["determination"] >= 1 else 0
 
-        result = dice.roll_task(
-            attribute=sheet["attributes"][attr],
-            department=sheet["departments"][dept],
+        # The dice, the pool arithmetic and the Determination rule live in
+        # task.py, shared with the ctrl+r quick roll -- two screens rolling the
+        # same Task must not disagree about what it costs.
+        outcome = task.resolve(
+            sheet,
+            db.get_pools(),
+            attribute=attr,
+            department=dept,
             difficulty=difficulty,
             focus=focus,
-            dice=2 + bonus,
+            bonus_dice=bonus,
             complication_range=comp_range,
-            determination=spend,
+            invoke_value=invoke,
         )
+        result = outcome.result
         colour = "#c3e88d" if result.succeeded else "#ff5370"
         detail = f"{entity['name']}: {result.detail}"
-        # Bought d20s are paid from the shared pools (Momentum first, shortfall
-        # credited to Threat).
-        if bonus > 0:
-            pools = db.get_pools()
-            new_m, new_t, paid, credited = momentum_mod.pay_for_bonus_dice(
-                pools["momentum"], pools["threat"], bonus
-            )
-            db.set_pools(new_m, new_t)
+        for note in outcome.notes:
+            detail += f"  --  {note}"
+
+        if outcome.momentum_delta or outcome.threat_delta:
+            db.set_pools(**task.apply(outcome, db.get_pools()))
             self._refresh_pool_bar()
-            cost_bits = [b for b in (f"spent {paid} Momentum" if paid else "", f"+{credited} Threat" if credited else "") if b]
-            detail += f"  --  bought {bonus} d20 ({', '.join(cost_bits) or 'free'})"
+        if outcome.momentum_spent or outcome.threat_credited:
             self._log(f"{entity['name']} bought {bonus} d20 for the Task")
-        if spend:
-            self._set_determination(entity, sta.adjust_determination(sheet["determination"], -1))
+        if outcome.determination_spent:
+            self._set_determination(entity, task.spend_determination(sheet, outcome)["determination"])
             self.query_one("#task-invoke", Switch).value = False
             self._log(f"{entity['name']} invoked a Value (spent 1 Determination)")
-        elif invoke:
-            detail += "  --  no Determination to spend"
-        if result.momentum > 0:
-            pools = db.adjust_momentum(result.momentum)
-            detail += f"  --  +{result.momentum} Momentum (pool {pools['momentum']})"
-            self._refresh_pool_bar()
-        if result.complications > 0:
-            pools = db.adjust_threat(result.complications)
-            detail += f"  --  +{result.complications} Threat (pool {pools['threat']})"
-            self._refresh_pool_bar()
+
         self.query_one("#task-result", Static).update(f"[{colour}]{detail}[/]")
         self._log(f"{entity['name']} rolled a Task: {result.successes} success(es) vs Difficulty {difficulty}")
         self._persist()

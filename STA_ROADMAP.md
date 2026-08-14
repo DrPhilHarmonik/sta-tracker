@@ -605,6 +605,23 @@ reassuring UI in front of it.
 readable Obsidian vault, not a serialization format. JSON is the full-fidelity
 path and this phase makes that true.
 
+**Status: Done (503/503).** The backup gained `pools` and `campaign_files`, and
+`BACKUP_VERSION` is 2. `library.CAMPAIGN_FILES` is the single manifest of what
+sits beside the DB, and `library.read_raw`/`write_raw` copy those files through
+shape-agnostically -- the backup does not need to know that talents are dicts
+and focuses are strings, so a library that changes shape later needs no change
+here.
+
+Version 1 backups still import, and a v1 restore leaves the pools and libraries
+untouched rather than clearing them: an old file carries no information about
+them, and silence is not an instruction to erase. Restores now report the
+library count, because zero is the difference between "your reference library
+came back" and "it did not".
+
+The guard against a second rot: a test exercises every library's write path and
+asserts every `.json` that appears beside the DB is named in the manifest.
+Verified by removing `scene.json` from the list -- two tests fail.
+
 ### Phase 28 — Roll a Task from anywhere (`ctrl+r`)
 
 **Why:** `dice.roll_task` is reachable only from `screens/combat.py` and
@@ -625,6 +642,23 @@ are all already built; only the door is missing.
 
 **Non-goals:** no weapon damage or Stress from here (those need a target and a
 combat, which is what the tracker is for); no new dice maths.
+
+**Status: Done (503/503).** `task.py` holds the rules half -- `resolve` rolls
+and works out the consequences, `apply` returns the new pools, and
+`spend_determination` returns the new sheet. None of it touches the database:
+the caller writes the deltas, which is what lets the combat tracker log and
+persist while a quick roll does neither, and lets the consequences be tested
+with a fixed dice sequence and a plain dict.
+
+`screens/combat.py` now goes through the same resolver, so the two screens
+cannot drift. `test_ui_combat_rolling.py` passed unchanged across that
+extraction, which is what made it safe to do.
+
+Two layout facts only the rendered screen showed: an unconstrained Difficulty
+input eats its row and pushes the Focus and Invoke switches off the modal, and
+the result line placed inside the scrolling body lands below the fold -- the
+one thing the modal was opened for. Both fixed; the result and the pools now
+sit outside the scroll.
 
 ## Later / optional
 

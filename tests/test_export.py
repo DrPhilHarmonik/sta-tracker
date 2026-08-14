@@ -128,7 +128,7 @@ def test_json_backup_round_trips_entities_and_relationships(monkeypatch, tmp_pat
 
     result = export.import_json_backup(backup_path)
 
-    assert result == {"entities": 2, "relationships": 1}
+    assert result == {"entities": 2, "relationships": 1, "libraries": 0}
     restored_npc = db.get_entity(npc_id)
     assert restored_npc["name"] == "Mira Thorn"
     assert restored_npc["fields"]["role"] == "Innkeeper"
@@ -155,7 +155,7 @@ def test_json_import_refuses_non_empty_database_without_replace(monkeypatch, tmp
     assert db.get_entity(existing_id)["name"] == "Existing NPC"
 
     result = export.import_json_backup(backup_path, replace=True)
-    assert result == {"entities": 1, "relationships": 0}
+    assert result == {"entities": 1, "relationships": 0, "libraries": 0}
     assert db.list_entities()[0]["name"] == "Mira Thorn"
 
 
@@ -380,3 +380,156 @@ def test_vault_round_trip_preserves_encounter_combatant_identity(monkeypatch, tm
     combatants = restored_encounter["fields"]["combat"]["combatants"]
     names = {db.get_entity(c["entity_id"])["name"] for c in combatants}
     assert names == {"Mira Thorn", "Goblin Boss"}
+
+
+# ── Backup completeness (Phase 27) ─────────────────────────────────────────────
+#
+# The JSON backup used to carry entities and relationships and nothing else,
+# while six phases of features quietly accumulated campaign state elsewhere: the
+# Momentum/Threat pools in the `campaign_state` table, and six JSON libraries
+# beside the DB. Restoring onto a new machine came up with empty pools and an
+# empty reference library, under a UI that said the backup was full fidelity.
+
+def _populate_campaign_state():
+    """Put something in every place that is not an entity."""
+    import adversaries
+    import focuses
+    import scene
+    import spaceframes
+    import talents
+
+    db.set_pools(4, 3)
+    scene.add_directive("Investigate, do not engage")
+    scene.add_trait("Ion Storm")
+    talents.save("Bold: Command", "Re-roll a d20 on a Command Task.")
+    focuses.add("Warp Field Dynamics")
+    adversaries.save({**adversaries.default_adversary(), "name": "Romulan Centurion"})
+    spaceframes.save({**spaceframes.default_spaceframe(), "name": "Nova Class"})
+
+
+def _campaign_state_snapshot() -> dict:
+    import adversaries
+    import focuses
+    import scene
+    import spaceframes
+    import talents
+
+    return {
+        "pools": db.get_pools(),
+        "directives": scene.directives(),
+        "traits": scene.traits(),
+        "talents": talents.names(),
+        "focuses": focuses.all_focuses(),
+        "adversaries": [a["name"] for a in adversaries.all_adversaries()],
+        "spaceframes": [f["name"] for f in spaceframes.all_spaceframes()],
+    }
+
+
+def test_json_backup_round_trips_pools_and_every_library(monkeypatch, tmp_path):
+    source_db = tmp_path / "source" / "campaign.db"
+    source_db.parent.mkdir()
+    monkeypatch.setenv("STA_DB_PATH", str(source_db))
+    db.init_db()
+    db.create_entity("npc", "Mira Thorn", {}, "")
+    _populate_campaign_state()
+    before = _campaign_state_snapshot()
+
+    backup_path = tmp_path / "backup.json"
+    export.export_json_backup(backup_path)
+
+    # A different directory, so the side-files cannot simply still be there.
+    target_db = tmp_path / "target" / "campaign.db"
+    target_db.parent.mkdir()
+    monkeypatch.setenv("STA_DB_PATH", str(target_db))
+    db.init_db()
+    assert _campaign_state_snapshot() != before  # a genuinely empty campaign
+
+    result = export.import_json_backup(backup_path)
+
+    assert _campaign_state_snapshot() == before
+    assert result["libraries"] >= 5
+
+
+def test_a_version_1_backup_still_imports(monkeypatch, tmp_path):
+    """Every backup anyone holds today is a v1. Refusing them would strand the
+    files this phase exists to protect."""
+    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
+    db.init_db()
+    db.create_entity("npc", "Mira Thorn", {}, "")
+    backup_path = tmp_path / "backup.json"
+    export.export_json_backup(backup_path)
+
+    old = json.loads(backup_path.read_text(encoding="utf-8"))
+    old["version"] = 1
+    del old["pools"]
+    del old["campaign_files"]
+    backup_path.write_text(json.dumps(old), encoding="utf-8")
+
+    result = export.import_json_backup(backup_path, replace=True)
+
+    assert result["entities"] == 1
+    assert result["libraries"] == 0
+
+
+def test_a_version_1_restore_leaves_the_libraries_alone(monkeypatch, tmp_path):
+    """A v1 file carries no information about the libraries. Silence is not an
+    instruction to erase them."""
+    import talents
+
+    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
+    db.init_db()
+    db.create_entity("npc", "Mira Thorn", {}, "")
+    backup_path = tmp_path / "backup.json"
+    export.export_json_backup(backup_path)
+    old = json.loads(backup_path.read_text(encoding="utf-8"))
+    old["version"] = 1
+    old.pop("pools", None)
+    old.pop("campaign_files", None)
+    backup_path.write_text(json.dumps(old), encoding="utf-8")
+
+    talents.save("Bold: Command", "")
+    db.set_pools(5, 2)
+
+    export.import_json_backup(backup_path, replace=True)
+
+    assert talents.names() == ["Bold: Command"]
+    assert db.get_pools() == {"momentum": 5, "threat": 2}
+
+
+def test_a_backup_from_a_future_version_is_still_refused(monkeypatch, tmp_path):
+    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
+    db.init_db()
+    backup_path = tmp_path / "backup.json"
+    export.export_json_backup(backup_path)
+    data = json.loads(backup_path.read_text(encoding="utf-8"))
+    data["version"] = export.BACKUP_VERSION + 1
+    backup_path.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="version"):
+        export.import_json_backup(backup_path, replace=True)
+
+
+def test_every_side_file_the_app_writes_is_named_in_the_backup_manifest(monkeypatch, tmp_path):
+    """The guard against this rotting a second time.
+
+    Exercise every library's write path, then assert the files that appear next
+    to the DB are all ones `library.CAMPAIGN_FILES` knows about. A future
+    library that forgets to register itself fails here rather than in someone's
+    restore.
+    """
+    import library
+
+    monkeypatch.setenv("STA_DB_PATH", str(tmp_path / "campaign.db"))
+    db.init_db()
+    _populate_campaign_state()
+    import extended
+
+    extended.save({**extended.default_task(), "name": "Repair the warp core"})
+
+    written = {p.name for p in (tmp_path).glob("*.json")}
+    unregistered = written - set(library.CAMPAIGN_FILES)
+
+    assert not unregistered, (
+        f"these campaign files are not in library.CAMPAIGN_FILES and would be "
+        f"lost by a backup: {sorted(unregistered)}"
+    )

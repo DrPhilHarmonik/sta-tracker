@@ -67,7 +67,15 @@ vault was exported with stats included.
 
 ## JSON Backup And Restore
 
-Create a full-fidelity JSON backup:
+The full-fidelity path: entities, relationships, character and ship sheets, the
+Momentum/Threat pools, the current mission's Directives and scene Traits, any
+Extended Tasks, and the Talents, Focuses, adversary and spaceframe libraries.
+
+Backups written before this (format version 1) still restore. They carry no
+record of the pools or the libraries, so those are left as they are rather than
+cleared.
+
+Create a backup:
 
 ```bash
 python3 sta.py --backup-json backup.json

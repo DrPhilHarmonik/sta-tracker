@@ -6,6 +6,7 @@ from datetime import datetime
 import yaml
 
 import db
+import library
 from db import list_entities, get_relationships
 from models import ENTITY_LABELS, ENTITY_SCHEMAS, ENTITY_TYPES
 import sta_sheet as sta_mod
@@ -17,7 +18,7 @@ import timeline
 _PARTICIPANT_TYPES = {"npc", "adventurer", "enemy", "starship", "faction", "location"}
 
 BACKUP_FORMAT = "dm-tracker-backup"
-BACKUP_VERSION = 1
+BACKUP_VERSION = 2
 
 # Entity types that carry a sheet worth exporting (character sheet or ship).
 _SHEET_TYPES = set(sta_mod.SHEET_ENTITY_TYPES) | set(ship_mod.SHEET_ENTITY_TYPES)
@@ -185,6 +186,16 @@ def export_all_play_aids(output_dir: Path) -> int:
     return count
 
 
+def _collect_campaign_files() -> dict:
+    """The side-file libraries, by filename, skipping ones that don't exist."""
+    files = {}
+    for filename in library.CAMPAIGN_FILES:
+        data = library.read_raw(filename)
+        if data is not None:
+            files[filename] = data
+    return files
+
+
 def export_json_backup(output_path: Path) -> int:
     output_path = Path(output_path).expanduser()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -197,6 +208,11 @@ def export_json_backup(output_path: Path) -> int:
         "exported_at": datetime.now().isoformat(timespec="seconds"),
         "entities": entities,
         "relationships": relationships,
+        # Everything that is campaign state but not an entity. Until v2 a
+        # backup carried neither, and a restore onto a new machine came up with
+        # empty pools and an empty reference library.
+        "pools": db.get_pools(),
+        "campaign_files": _collect_campaign_files(),
     }
     output_path.write_text(
         json.dumps(backup, indent=2, sort_keys=True) + "\n",
@@ -214,13 +230,38 @@ def import_json_backup(input_path: Path, *, replace: bool = False) -> dict[str, 
         raise ValueError("Refusing to import into a non-empty database without replace=True")
 
     db.replace_all(entities, relationships)
-    return {"entities": len(entities), "relationships": len(relationships)}
+
+    # A version 1 backup says nothing about the pools or the libraries -- it
+    # was written before they were carried. Silence is not an instruction to
+    # erase them, so anything absent here is left as it is.
+    pools = backup.get("pools")
+    if isinstance(pools, dict):
+        db.set_pools(pools.get("momentum", 0), pools.get("threat", 0))
+
+    files = backup.get("campaign_files")
+    restored_files = 0
+    if isinstance(files, dict):
+        for filename, data in files.items():
+            if filename not in library.CAMPAIGN_FILES:
+                continue  # not a library this version knows how to place
+            library.write_raw(filename, data)
+            restored_files += 1
+
+    return {
+        "entities": len(entities),
+        "relationships": len(relationships),
+        "libraries": restored_files,
+    }
 
 
 def _validate_backup(backup: dict) -> tuple[list[dict], list[dict]]:
     if backup.get("format") != BACKUP_FORMAT:
         raise ValueError("Unsupported backup format")
-    if backup.get("version") != BACKUP_VERSION:
+    # Older backups are still readable: v2 only added keys, and every one of
+    # them is optional on the way back in. Refusing a v1 file would strand
+    # anyone whose backup predates this phase -- which is everyone's, right now.
+    version = backup.get("version")
+    if not isinstance(version, int) or not 1 <= version <= BACKUP_VERSION:
         raise ValueError("Unsupported backup version")
 
     entities = backup.get("entities")

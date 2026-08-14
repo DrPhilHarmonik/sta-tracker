@@ -27,6 +27,7 @@ class STAApp(App):
         # box and a notes field.
         Binding("question_mark", "help", "Help"),
         Binding("f1", "help", "Help", show=False),
+        Binding("ctrl+r", "quick_task", "Roll Task"),
     ]
 
     _active_session_id: int | None = None
@@ -117,6 +118,19 @@ class STAApp(App):
         # place. Split the camel case and drop the redundant "Screen".
         name = re.sub(r"(?<!^)(?=[A-Z])", " ", type(screen).__name__)
         return name.removesuffix(" Screen")
+
+    def action_quick_task(self):
+        """Roll a Task from any screen.
+
+        Opening it twice closes it, for the same reason `?` does: the modal is
+        a thing you toggle, not a stack.
+        """
+        from screens.quick_task import QuickTaskModal
+
+        if isinstance(self.screen, QuickTaskModal):
+            self.screen.dismiss()
+            return
+        self.push_screen(QuickTaskModal())
 
     def action_quick_capture(self):
         from screens.quick_capture import QuickCaptureModal
