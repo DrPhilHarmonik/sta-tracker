@@ -566,6 +566,66 @@ Three things the live app taught that the plan did not anticipate:
   are scoped to the screen and the app; every `BINDINGS` in this app is declared
   on one or the other, so nothing of ours is lost.
 
+## Batch 5 — the backup tells the truth & rolling anywhere (Phases 27–28)
+
+Two phases, correctness before convenience. 27 is not a feature so much as a
+promise the app stopped keeping: six phases have added campaign state that the
+"full-fidelity" JSON backup does not carry, so a restore onto a new machine
+silently loses it. 28 is the biggest remaining at-the-table gap -- STA resolves
+everything with a 2d20 Task roll, and today you can only roll one from inside
+the combat tracker or the ship screen.
+
+### Phase 27 — The backup covers the whole campaign
+
+**Why:** `export_json_backup` writes `entities` and `relationships`, and
+nothing else. Everything since Phase 13 lives outside those two tables:
+
+| Not in the backup | Where it lives |
+|---|---|
+| Momentum & Threat pools | the `campaign_state` table |
+| Mission Directives, scene Traits | `scene.json` |
+| Extended Tasks | `extended_tasks.json` |
+| Talents, Focuses libraries | `talents.json`, `focuses.json` |
+| Custom spaceframes | `spaceframes.json` |
+| Adversary library | `adversaries.json` |
+
+The README calls this "a full-fidelity JSON backup", the Backup screen offers
+it as the way to move a campaign, and both are wrong. This is data loss with a
+reassuring UI in front of it.
+
+**Scope:**
+- Back up the pools and every side-file; restore them on import.
+- Bump `BACKUP_VERSION` to 2, and keep reading version 1 backups -- an older
+  file carries no information about the libraries, so a v1 restore must leave
+  them alone rather than clear them.
+- A manifest test that fails when a *future* library is added and not covered,
+  so this cannot rot the same way twice.
+
+**Non-goals:** the Markdown vault export stays entity-shaped -- it is a
+readable Obsidian vault, not a serialization format. JSON is the full-fidelity
+path and this phase makes that true.
+
+### Phase 28 — Roll a Task from anywhere (`ctrl+r`)
+
+**Why:** `dice.roll_task` is reachable only from `screens/combat.py` and
+`screens/starship.py`. STA resolves *everything* with a Task roll, and most
+play is investigation and social scenes -- so the common case means opening a
+combat tracker you are not in. The dice, the pools and the Determination rules
+are all already built; only the door is missing.
+
+**Scope:**
+- `ctrl+r` opens a Task-roll modal from any screen: pick a character, an
+  Attribute + Department, Difficulty, Focus, bought d20s, Complication range.
+- The same consequences the combat roller applies -- Momentum from extra
+  successes, Threat from Complications, Determination spent to invoke a Value,
+  bought dice paid out of the pools.
+- Extract that consequence handling out of `screens/combat.py` so the two
+  cannot drift into disagreeing about the rules. `test_ui_combat_rolling.py`
+  covers the existing behaviour and is what makes the extraction safe.
+
+**Non-goals:** no weapon damage or Stress from here (those need a target and a
+combat, which is what the tracker is for); no new dice maths.
+
 ## Later / optional
 
 (Between-scenes recovery / Threat carry and printable play aids were promoted
